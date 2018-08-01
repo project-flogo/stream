@@ -1,0 +1,9 @@
+{
+  "name": "stream",
+  "type": "flogo:action",
+  "ref": "github.com/flogo-oss/stream/action",
+  "version": "0.0.1",
+  "title": "Flogo Stream",
+  "description": "Simple Stream Action",
+  "homepage": "https://github.com/flogo-oss/stream/tree/master",
+}
