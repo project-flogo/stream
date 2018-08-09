@@ -3,65 +3,14 @@ package pipeline
 import (
 	"sync"
 	"fmt"
+	"errors"
 
 	"github.com/TIBCOSoftware/flogo-lib/core/data"
 	"github.com/TIBCOSoftware/flogo-lib/logger"
-	"errors"
 )
 
-type ScopeProvider interface {
-	GetScope(id string) data.MutableScope
-}
-
-func NewSingleScopeProvider() ScopeProvider {
-
-	return &singleScopeProvider{scope:&SharedScope{}}
-}
-
-type singleScopeProvider struct {
-	scope data.MutableScope
-}
-
-func (p *singleScopeProvider) GetScope(id string) data.MutableScope  {
-	return p.scope
-}
-
-func NewMultiScopeProvider() ScopeProvider {
-	return &multiScopeProvider{scopes:make(map[string]data.MutableScope)}
-}
-
-
-type multiScopeProvider struct {
-	scopes map[string]data.MutableScope
-	rwMutex sync.RWMutex
-}
-
-func (p *multiScopeProvider) GetScope(id string) data.MutableScope  {
-
-	p.rwMutex.RLock()
-	//fast path
-	if scope,exist := p.scopes[id];exist {
-		p.rwMutex.RUnlock()
-		return scope
-	}
-	p.rwMutex.RUnlock()
-
-	p.rwMutex.Lock()
-	defer p.rwMutex.Unlock()
-
-	scope,exist := p.scopes[id]
-
-	if !exist {
-		scope = &SharedScope{}
-		p.scopes[id] = scope
-	}
-
-	return scope
-}
-
-
 type SharedScope struct {
-	attrs map[string]*data.Attribute
+	attrs   map[string]*data.Attribute
 	rwMutex sync.RWMutex
 }
 
