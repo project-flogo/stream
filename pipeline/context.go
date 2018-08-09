@@ -165,7 +165,7 @@ func (eCtx *ExecutionContext) SetOutput(name string, value interface{}) {
 	}
 }
 
-func (eCtx *ExecutionContext) GetSharedData() map[string]interface{} {
+func (eCtx *ExecutionContext) GetSharedTempData() map[string]interface{} {
 
 	state := eCtx.pipeline.sm.GetState(eCtx.discriminator)
 	return state.GetSharedData(eCtx.currentStage().act)
