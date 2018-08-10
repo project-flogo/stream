@@ -51,26 +51,31 @@
           "input": [
             {
               "name": "input",
-              "type": "string"
+              "type": "integer"
             }
           ]
         },
         "stages": [
           {
-            "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/log",
+            "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/aggregate",
+            "settings": {
+              "function": "sum",
+              "windowType": "timeTumbling",
+              "windowSize": "5000"
+            },
             "inputMappings": [
               {
-                "mapTo": "message", "type": "assign", "value": "$.input"
+                "mapTo": "value", "type": "assign", "value": "$.input"
               }
             ]
           },
           {
             "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/log",
-            "input": {
-              "message": "activity2",
-              "flowInfo": "false",
-              "addToFlow": "false"
-            }
+            "inputMappings": [
+              {
+                "mapTo": "message", "type": "assign", "value": "$.result"
+              }
+            ]
           }
         ]
       }

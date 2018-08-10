@@ -3,27 +3,28 @@ package pipeline
 import (
 	"github.com/TIBCOSoftware/flogo-lib/core/data"
 	"github.com/TIBCOSoftware/flogo-lib/logger"
-)
+	"github.com/TIBCOSoftware/flogo-lib/core/activity"
+		)
 
 type Instance struct {
 	def    *Definition
 	id     string
 	status Status
 
-	sc ScopeProvider
+	sm StateManager
 }
 
 func NewInstance(definition *Definition, id string, single bool) *Instance {
 
-	var sc ScopeProvider
+	var sm StateManager
 
 	if single {
-		sc = NewSingleScopeProvider()
+		sm = NewSimpleStateManager()
 	} else {
-		sc = NewMultiScopeProvider()
+		sm = NewMultiStateManager()
 	}
 
-	return &Instance{def:definition, id:id, sc:sc}
+	return &Instance{def:definition, id:id, sm:sm}
 }
 
 func (inst *Instance) Id() string {
@@ -44,7 +45,7 @@ func (inst *Instance) Run(discriminator string, input map[string]*data.Attribute
 
 	for hasWork {
 
-		hasWork, err = inst.DoStep(ctx)
+		hasWork, err = inst.DoStep(ctx, false)
 		if err != nil {
 			break
 		}
@@ -61,14 +62,20 @@ func (inst *Instance) Run(discriminator string, input map[string]*data.Attribute
 	return nil, nil
 }
 
-func (inst *Instance) DoStep(ctx *ExecutionContext) (hasWork bool, err error) {
+func (inst *Instance) DoStep(ctx *ExecutionContext, resume bool) (hasWork bool, err error) {
 
 	hasNext := false
 
 	if ctx.stageId < len(inst.def.stages) {
 
 		//get the stage to work on
-		done, err := ExecuteCurrentStage(ctx)
+		done := false
+		if resume {
+			done, err = ResumeCurrentStage(ctx)
+		} else {
+			done, err = ExecuteCurrentStage(ctx)
+		}
+
 		if err != nil {
 			logger.Debugf("Pipeline[%s] - Execution failed - Error: %s", ctx.pipeline.id, err.Error())
 			ctx.status = ExecStatusFailed
@@ -108,7 +115,7 @@ func ExecuteCurrentStage(ctx *ExecutionContext) (done bool, err error) {
 		logger.Debugf("Pipeline[%s] - Applying InputMapper", ctx.pipeline.id)
 
 		in := data.NewSimpleScopeFromMap(ctx.output, ctx.pipelineScope())
-		out := data.NewFixedScope(stage.act.Metadata().Output)
+		out := data.NewFixedScope(stage.act.Metadata().Input)
 		err := stage.inputMapper.Apply(in, out)
 		if err != nil {
 			return false, err
@@ -129,7 +136,7 @@ func ExecuteCurrentStage(ctx *ExecutionContext) (done bool, err error) {
 	done, err = stage.act.Eval(ctx)
 
 	//add attrs to pipeline
-	if len(stage.promote) > 0 {
+	if done && len(stage.promote) > 0 {
 		scope := ctx.pipelineScope()
 
 		for key, value := range ctx.input {
@@ -142,3 +149,50 @@ func ExecuteCurrentStage(ctx *ExecutionContext) (done bool, err error) {
 	return done, err
 }
 
+func Resume(ctx *ExecutionContext) error {
+
+	hasWork := true
+
+	inst := ctx.pipeline
+	var err error
+
+	resume := true
+	for hasWork {
+
+		hasWork, err = inst.DoStep(ctx, resume)
+		if err != nil {
+			break
+		}
+		resume = false
+	}
+
+	//if we emit on done, we need to return some output
+	return nil
+}
+
+func ResumeCurrentStage(ctx *ExecutionContext) (done bool, err error) {
+
+	stage := ctx.currentStage()
+
+	logger.Debugf("Pipeline[%s] - Resuming stage %d", ctx.pipeline.id, ctx.stageId)
+
+	aact, ok := stage.act.(activity.AsyncActivity)
+
+	//post-eval activity/stage
+	if ok {
+		done, err = aact.PostEval(ctx, nil)
+	}
+
+	//add attrs to pipeline
+	if done && len(stage.promote) > 0 {
+		scope := ctx.pipelineScope()
+
+		for key, value := range ctx.input {
+			if _,exists := stage.promote[key]; exists{
+				scope.AddAttr("_P." + key, value.Type(), value.Name())
+			}
+		}
+	}
+
+	return done, err
+}

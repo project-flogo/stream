@@ -9,16 +9,16 @@ import (
 	"github.com/TIBCOSoftware/flogo-lib/logger"
 )
 
-var resolver = &PipelineResolver{}
+var resolver = &Resolver{}
 
 func GetDataResolver() data.Resolver {
 	return resolver
 }
 
-type PipelineResolver struct {
+type Resolver struct {
 }
 
-func (r *PipelineResolver) Resolve(toResolve string, scope data.Scope) (value interface{}, err error) {
+func (r *Resolver) Resolve(toResolve string, scope data.Scope) (value interface{}, err error) {
 
 	var details *data.ResolutionDetails
 

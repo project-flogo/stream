@@ -1,8 +1,12 @@
 package pipeline
 
 import (
+	"time"
+
 	"github.com/TIBCOSoftware/flogo-lib/core/data"
 	"github.com/TIBCOSoftware/flogo-lib/core/activity"
+	"github.com/flogo-oss/stream/pipeline/support"
+	"github.com/TIBCOSoftware/flogo-lib/logger"
 )
 
 type Status int
@@ -61,7 +65,8 @@ func (eCtx *ExecutionContext) currentStage() *Stage {
 }
 
 func (eCtx *ExecutionContext) pipelineScope() data.MutableScope {
-	return eCtx.pipeline.sc.GetScope(eCtx.discriminator)
+	//todo just maybe store ref to pipeline state in ctx
+	return eCtx.pipeline.sm.GetState(eCtx.discriminator).GetScope()
 }
 
 /////////////////////////////////////////
@@ -88,7 +93,7 @@ func (eCtx *ExecutionContext) Return(returnData map[string]*data.Attribute, err 
 }
 
 func (eCtx *ExecutionContext) WorkingData() data.Scope {
-	return eCtx.pipeline.sc.GetScope(eCtx.discriminator)
+	return eCtx.pipeline.sm.GetState(eCtx.discriminator).GetScope()
 }
 
 func (eCtx *ExecutionContext) GetResolver() data.Resolver {
@@ -109,11 +114,6 @@ func (eCtx *ExecutionContext) GetSetting(setting string) (value interface{}, exi
 		return attr.Value(), true
 	}
 
-	return nil, false
-}
-
-func (eCtx *ExecutionContext) GetInitValue(key string) (value interface{}, exists bool) {
-	//ignore
 	return nil, false
 }
 
@@ -150,6 +150,10 @@ func (eCtx *ExecutionContext) GetOutput(name string) interface{} {
 
 func (eCtx *ExecutionContext) SetOutput(name string, value interface{}) {
 
+	if eCtx.output == nil {
+		eCtx.output = make(map[string]*data.Attribute)
+	}
+
 	attr, found := eCtx.output[name]
 	if found {
 		attr.SetValue(value)
@@ -161,6 +165,18 @@ func (eCtx *ExecutionContext) SetOutput(name string, value interface{}) {
 	}
 }
 
+func (eCtx *ExecutionContext) GetSharedTempData() map[string]interface{} {
+
+	state := eCtx.pipeline.sm.GetState(eCtx.discriminator)
+	return state.GetSharedData(eCtx.currentStage().act)
+}
+
+// DEPRECATED
+func (eCtx *ExecutionContext) GetInitValue(key string) (value interface{}, exists bool) {
+	//ignore
+	return nil, false
+}
+
 // DEPRECATED
 func (eCtx *ExecutionContext) TaskName() string {
 	//ignore
@@ -170,5 +186,98 @@ func (eCtx *ExecutionContext) TaskName() string {
 // DEPRECATED
 func (eCtx *ExecutionContext) FlowDetails() activity.FlowDetails {
 	//ignore
+	return nil
+}
+
+/////////////////////////////////////////
+//  TimerSupport Implementation
+
+// HasTimer indicates if a timer already exists
+func (eCtx *ExecutionContext) HasTimer(repeating bool) bool {
+	act := eCtx.currentStage().act
+	eCtx.pipeline.sm.GetState(eCtx.discriminator)
+
+	var hasTimer bool
+
+	state := eCtx.pipeline.sm.GetState(eCtx.discriminator)
+
+	if repeating {
+		_, hasTimer = state.GetTimer(act)
+	} else {
+		_, hasTimer = state.GetTimer(act)
+	}
+
+	return hasTimer
+}
+
+// CancelTimer cancels the existing timer
+func (eCtx *ExecutionContext) CancelTimer(repeating bool) {
+	act := eCtx.currentStage().act
+
+	state := eCtx.pipeline.sm.GetState(eCtx.discriminator)
+
+	if repeating {
+		state.RemoveTicker(act)
+	} else {
+		state.RemoveTimer(act)
+	}
+}
+
+// CreateTimer creates a timer, note: can only have one active timer at a time for an activity
+func (eCtx *ExecutionContext) CreateTimer(interval time.Duration, callback support.TimerCallback, repeating bool) error {
+
+	discriminator := eCtx.discriminator
+	inst := eCtx.pipeline
+	stageId := eCtx.stageId
+
+	state := eCtx.pipeline.sm.GetState(eCtx.discriminator)
+
+	if repeating {
+		//create go ticker
+
+		ticker, err := state.NewTicker(eCtx.currentStage().act, interval)
+		if err != nil {
+			return err
+		}
+
+		go func() {
+			for range ticker.C {
+
+				newCtx := &ExecutionContext{discriminator: discriminator, pipeline: inst}
+				newCtx.stageId = stageId
+				newCtx.status = ExecStatusActive
+
+				logger.Debugf("Repeating timer fired for activity: %s", newCtx.currentStage().act.Metadata().ID)
+
+				resume := callback(newCtx)
+				if resume {
+					Resume(newCtx)
+				}
+			}
+		}()
+
+	} else {
+		//create go timer
+
+		timer, err := state.NewTimer(eCtx.currentStage().act, interval)
+		if err != nil {
+			return err
+		}
+
+		go func() {
+			<-timer.C
+			newCtx := &ExecutionContext{discriminator: discriminator, pipeline: inst}
+			newCtx.stageId = stageId
+			newCtx.status = ExecStatusActive
+
+			logger.Debugf("Timeout timer fired for activity: %s", newCtx.currentStage().act.Metadata().ID)
+
+			resume := callback(newCtx)
+			if resume {
+				Resume(newCtx)
+			}
+		}()
+	}
+
 	return nil
 }
