@@ -124,7 +124,7 @@ func (eCtx *ExecutionContext) GetInput(name string) interface{} {
 		return attr.Value()
 	} else {
 		stage := eCtx.currentStage()
-		attr, found := stage.inputAttrs[name]
+		attr, found := stage.act.Metadata().Input[name]
 		if found {
 			return attr.Value()
 		}
@@ -139,7 +139,7 @@ func (eCtx *ExecutionContext) GetOutput(name string) interface{} {
 		return attr.Value()
 	} else {
 		stage := eCtx.currentStage()
-		attr, found := stage.inputAttrs[name]
+		attr, found := stage.outputAttrs[name]
 		if found {
 			return attr.Value()
 		}

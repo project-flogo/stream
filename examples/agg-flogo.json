@@ -1,0 +1,86 @@
+{
+  "name": "stream",
+  "type": "flogo:app",
+  "version": "0.0.1",
+  "appModel": "1.0.0",
+
+  "triggers": [
+    {
+      "id": "receive_http_message",
+      "ref": "github.com/TIBCOSoftware/flogo-contrib/trigger/rest",
+      "name": "Receive HTTP Message",
+      "settings": {
+        "port": "7777"
+      },
+      "handlers": [
+        {
+          "settings": {
+            "method": "GET",
+            "path": "/test/:val"
+          },
+          "action": {
+            "id": "simple_agg",
+            "mappings": {
+              "input": [
+                {
+                  "mapTo": "input", "type": "assign", "value": "$.pathParams.val"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+
+  "actions": [
+    {
+      "id": "simple_agg",
+      "ref": "github.com/flogo-oss/stream",
+      "settings": {
+        "pipelineURI": "res://pipeline:simple"
+      }
+    }
+  ],
+
+  "resources": [
+    {
+      "id": "pipeline:simple_agg",
+      "data": {
+        "metadata": {
+          "input": [
+            {
+              "name": "input",
+              "type": "integer"
+            }
+          ],
+          "output": [
+            {
+              "name": "result",
+              "type": "integer"
+            }
+          ]
+        },
+        "stages": [
+          {
+            "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/aggregate",
+            "settings": {
+              "function": "sum",
+              "windowType": "timeTumbling",
+              "windowSize": "5000"
+            },
+            "input": {
+              "value": "=$.input"
+            }
+          },
+          {
+            "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/log",
+            "input": {
+              "value": "=$.result"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

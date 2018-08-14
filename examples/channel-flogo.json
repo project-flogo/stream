@@ -3,6 +3,9 @@
   "type": "flogo:app",
   "version": "0.0.1",
   "appModel": "1.0.0",
+
+  "channels":["test:5"],
+
   "triggers": [
     {
       "id": "receive_http_message",
@@ -58,7 +61,8 @@
       "id": "simple_agg",
       "ref": "github.com/flogo-oss/stream",
       "settings": {
-        "pipelineURI": "res://pipeline:simple"
+        "pipelineURI": "res://pipeline:simple",
+        "outputChannel" : "test"
       }
     },
     {
@@ -96,19 +100,15 @@
               "windowType": "timeTumbling",
               "windowSize": "5000"
             },
-            "inputMappings": [
-              {
-                "mapTo": "value", "type": "assign", "value": "$.input"
-              }
-            ]
+            "input": {
+              "value": "=$.input"
+            }
           },
           {
             "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/log",
-            "inputMappings": [
-              {
-                "mapTo": "message", "type": "assign", "value": "$.result"
-              }
-            ]
+            "input": {
+              "value": "=$.result"
+            }
           }
         ]
       }
@@ -128,16 +128,16 @@
           {
             "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/filter",
             "settings": {
-              "type":"non-zero"
+              "type": "non-zero"
             },
             "input": {
-              "value":"$.input"
+              "value": "=$.input"
             }
           },
           {
             "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/log",
             "input": {
-              "message": "$.value"
+              "message": "=$.value"
             }
           }
         ]

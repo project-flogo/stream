@@ -5,7 +5,6 @@ import (
 
 	"github.com/TIBCOSoftware/flogo-lib/core/activity"
 	"github.com/TIBCOSoftware/flogo-lib/core/data"
-	"github.com/TIBCOSoftware/flogo-lib/core/mapper"
 	"github.com/TIBCOSoftware/flogo-lib/logger"
 )
 
@@ -19,12 +18,11 @@ type MapperAlt interface {
 }
 
 type Stage struct {
-	act         activity.Activity
-	settings    map[string]*data.Attribute
-	inputAttrs  map[string]*data.Attribute
-	outputAttrs map[string]*data.Attribute
+	act      activity.Activity
+	settings map[string]*data.Attribute
+	inputs   *InputValues
 
-	inputMapper data.Mapper
+	outputAttrs map[string]*data.Attribute
 
 	// do we need outputMapper instead?
 	promote map[string]struct{} //promote these outputs to the pipeline
@@ -39,8 +37,6 @@ type StageConfig struct {
 	InputMappings []*data.MappingDef `json:"inputMappings,omitempty"`
 	Promotions    []string           `json:"addToPipeline,omitempty"`
 }
-
-//todo switch mappings to simple "A=$.blah" or "A=123" or "A=strings.Concat('a','b')"
 
 func NewStage(config *StageConfig) (*Stage, error) {
 
@@ -73,17 +69,12 @@ func NewStage(config *StageConfig) (*Stage, error) {
 	inputAttrs := config.InputAttrs
 
 	if len(inputAttrs) > 0 {
-		stage.inputAttrs = make(map[string]*data.Attribute, len(inputAttrs))
 
-		for name, value := range inputAttrs {
+		var err error
+		stage.inputs, err = NewInputValues(act.Metadata().Input, GetDataResolver(), inputAttrs)
 
-			attr := act.Metadata().Input[name]
-
-			if attr != nil {
-				//var err error
-				//todo handle error
-				stage.inputAttrs[name], _ = data.NewAttribute(name, attr.Type(), value)
-			}
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -110,11 +101,6 @@ func NewStage(config *StageConfig) (*Stage, error) {
 		for _, value := range config.Promotions {
 			stage.promote[value] = exists
 		}
-	}
-
-	if len(config.InputMappings) > 0 {
-		stage.inputMapper = mapper.GetFactory().NewUniqueMapper("", &data.MapperDef{Mappings: config.InputMappings}, GetDataResolver())
-
 	}
 
 	return stage, nil

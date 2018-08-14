@@ -109,22 +109,14 @@ func ExecuteCurrentStage(ctx *ExecutionContext) (done bool, err error) {
 
 	logger.Debugf("Pipeline[%s] - Executing stage %d", ctx.pipeline.id, ctx.stageId)
 
-	//do input mappings
-	if stage.inputMapper != nil {
-
-		logger.Debugf("Pipeline[%s] - Applying InputMapper", ctx.pipeline.id)
+	if stage.inputs != nil {
 
 		in := data.NewSimpleScopeFromMap(ctx.output, ctx.pipelineScope())
-		out := data.NewFixedScope(stage.act.Metadata().Input)
-		err := stage.inputMapper.Apply(in, out)
+		ctx.input, err = stage.inputs.GetAttrs(in)
 		if err != nil {
 			return false, err
 		}
 
-		ctx.input = out.GetAttrs()
-	} else {
-		//todo review this, what should we do if no mapping is specified
-		ctx.input = ctx.output
 	}
 
 	//clear previous output
