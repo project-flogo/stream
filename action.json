@@ -6,4 +6,19 @@
   "title": "Flogo Stream",
   "description": "Simple Stream Action",
   "homepage": "https://github.com/flogo-oss/stream/tree/master",
+  "settings": [
+    {
+      "name": "pipelineURI",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "groupBy",
+      "type": "string"
+    },
+    {
+      "name": "outputChannel",
+      "type": "string"
+    }
+  ]
 }

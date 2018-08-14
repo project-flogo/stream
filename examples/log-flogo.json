@@ -8,14 +8,17 @@
       "id": "receive_http_message",
       "ref": "github.com/TIBCOSoftware/flogo-contrib/trigger/rest",
       "name": "Receive HTTP Message",
-      "description": "Simple REST Trigger",
       "settings": {
         "port": "7777"
       },
       "handlers": [
         {
+          "settings": {
+            "method": "GET",
+            "path": "/test/:val"
+          },
           "action": {
-            "id": "simple",
+            "id": "simple_agg",
             "mappings": {
               "input": [
                 {
@@ -23,10 +26,27 @@
                 }
               ]
             }
-          },
+          }
+        }
+      ]
+    },
+    {
+      "id": "internal_channel",
+      "ref": "github.com/TIBCOSoftware/flogo-contrib/trigger/channel",
+      "handlers": [
+        {
           "settings": {
-            "method": "GET",
-            "path": "/test/:val"
+            "channel": "test"
+          },
+          "action": {
+            "id": "simple_report",
+            "mappings": {
+              "input": [
+                {
+                  "mapTo": "input", "type": "assign", "value": "$.out"
+                }
+              ]
+            }
           }
         }
       ]
@@ -35,9 +55,16 @@
 
   "actions": [
     {
-      "id": "simple",
-      "ref": "github.com/flogo-oss/stream/action",
-      "data": {
+      "id": "simple_agg",
+      "ref": "github.com/flogo-oss/stream",
+      "settings": {
+        "pipelineURI": "res://pipeline:simple"
+      }
+    },
+    {
+      "id": "simple_report",
+      "ref": "github.com/flogo-oss/stream",
+      "settings": {
         "pipelineURI": "res://pipeline:simple"
       }
     }
@@ -45,12 +72,18 @@
 
   "resources": [
     {
-      "id": "pipeline:simple",
+      "id": "pipeline:simple_agg",
       "data": {
         "metadata": {
           "input": [
             {
               "name": "input",
+              "type": "integer"
+            }
+          ],
+          "output": [
+            {
+              "name": "result",
               "type": "integer"
             }
           ]
@@ -76,6 +109,36 @@
                 "mapTo": "message", "type": "assign", "value": "$.result"
               }
             ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "pipeline:simple_report",
+      "data": {
+        "metadata": {
+          "input": [
+            {
+              "name": "input",
+              "type": "integer"
+            }
+          ]
+        },
+        "stages": [
+          {
+            "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/filter",
+            "settings": {
+              "type":"non-zero"
+            },
+            "input": {
+              "value":"$.input"
+            }
+          },
+          {
+            "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/log",
+            "input": {
+              "message": "$.value"
+            }
           }
         ]
       }
