@@ -6,7 +6,7 @@ import (
 	"github.com/TIBCOSoftware/flogo-lib/core/activity"
 	"github.com/TIBCOSoftware/flogo-lib/core/data"
 	"github.com/TIBCOSoftware/flogo-lib/logger"
-)
+	)
 
 var (
 	exists = struct{}{}
@@ -29,12 +29,8 @@ type Stage struct {
 }
 
 type StageConfig struct {
-	Ref         string                 `json:"ref"`
-	Settings    map[string]interface{} `json:"settings,omitempty"`
-	InputAttrs  map[string]interface{} `json:"input,omitempty"`
-	OutputAttrs map[string]interface{} `json:"output,omitempty"`
+	*activity.Config
 
-	InputMappings []*data.MappingDef `json:"inputMappings,omitempty"`
 	Promotions    []string           `json:"addToPipeline,omitempty"`
 }
 
