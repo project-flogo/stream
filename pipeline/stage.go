@@ -6,7 +6,7 @@ import (
 	"github.com/TIBCOSoftware/flogo-lib/core/activity"
 	"github.com/TIBCOSoftware/flogo-lib/core/data"
 	"github.com/TIBCOSoftware/flogo-lib/logger"
-	)
+)
 
 var (
 	exists = struct{}{}
@@ -31,7 +31,7 @@ type Stage struct {
 type StageConfig struct {
 	*activity.Config
 
-	Promotions    []string           `json:"addToPipeline,omitempty"`
+	Promotions []string `json:"addToPipeline,omitempty"`
 }
 
 func NewStage(config *StageConfig) (*Stage, error) {
@@ -43,6 +43,15 @@ func NewStage(config *StageConfig) (*Stage, error) {
 	act := activity.Get(config.Ref)
 	if act == nil {
 		return nil, errors.New("Unsupported Activity:" + config.Ref)
+	}
+
+	f := activity.GetFactory(config.Ref)
+
+	if f != nil {
+		pa, err := f(config.Config)
+		if err == nil {
+			act = pa
+		}
 	}
 
 	stage := &Stage{}
