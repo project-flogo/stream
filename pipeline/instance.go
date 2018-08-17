@@ -6,6 +6,8 @@ import (
 	"github.com/TIBCOSoftware/flogo-lib/core/activity"
 	"strings"
 	"errors"
+	"fmt"
+	"runtime/debug"
 )
 
 type Instance struct {
@@ -107,6 +109,19 @@ func (inst *Instance) DoStep(ctx *ExecutionContext, resume bool) (hasWork bool, 
 
 func ExecuteCurrentStage(ctx *ExecutionContext) (done bool, err error) {
 
+	defer func() {
+		if r := recover(); r != nil {
+
+			err = fmt.Errorf("unhandled error executing stage '%s' : %v", "stage", r)
+			logger.Error(err)
+
+			// todo: useful for debugging
+			logger.Debugf("StackTrace: %s", debug.Stack())
+
+			done = false
+		}
+	}()
+
 	//prevent re-execution of stage?
 	stage := ctx.currentStage()
 
@@ -192,6 +207,19 @@ func Resume(ctx *ExecutionContext) error {
 }
 
 func ResumeCurrentStage(ctx *ExecutionContext) (done bool, err error) {
+
+	defer func() {
+		if r := recover(); r != nil {
+
+			err = fmt.Errorf("unhandled Error resuming stage '%s' : %v", "stage", r)
+			logger.Error(err)
+
+			// todo: useful for debugging
+			logger.Debugf("StackTrace: %s", debug.Stack())
+
+			done = false
+		}
+	}()
 
 	stage := ctx.currentStage()
 
