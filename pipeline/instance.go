@@ -90,6 +90,8 @@ func (inst *Instance) DoStep(ctx *ExecutionContext, resume bool) (hasWork bool, 
 		if !done {
 			logger.Debugf("Pipeline[%s] - Partial Execution Completed", ctx.pipeline.id)
 
+			ctx.UpdateTimers()
+
 			//stage has stalled so we are done working
 			ctx.status = ExecStatusStalled
 			return false, nil

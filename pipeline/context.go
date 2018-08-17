@@ -44,6 +44,11 @@ const (
 	ExecStatusFailed ExecutionStatus = 700
 )
 
+const (
+	bitIsTimer uint8 = 1
+	bitIsTicker uint8 = 2
+)
+
 type ExecutionContext struct {
 	pipeline      *Instance
 	discriminator string
@@ -56,6 +61,8 @@ type ExecutionContext struct {
 
 	currentInput  map[string]*data.Attribute
 	currentOutput map[string]*data.Attribute
+
+	updateTimers uint8
 }
 
 func (eCtx *ExecutionContext) Status() ExecutionStatus {
@@ -228,18 +235,29 @@ func (eCtx *ExecutionContext) CancelTimer(repeating bool) {
 
 // CreateTimer creates a timer, note: can only have one active timer at a time for an activity
 func (eCtx *ExecutionContext) UpdateTimer(repeating bool) {
+
+	if repeating {
+		eCtx.updateTimers = eCtx.updateTimers | bitIsTicker
+	} else {
+		eCtx.updateTimers = eCtx.updateTimers | bitIsTimer
+	}
+}
+
+// CreateTimer creates a timer, note: can only have one active timer at a time for an activity
+func (eCtx *ExecutionContext) UpdateTimers() {
 	act := eCtx.currentStage().act
 	state := eCtx.pipeline.sm.GetState(eCtx.discriminator)
 
-	if repeating {
+	if eCtx.updateTimers & bitIsTicker > 0 {
 		if holder, exists :=state.GetTicker(act); exists {
 			holder.SetLastExecCtx(eCtx)
 		}
-	} else {
+	} else if eCtx.updateTimers & bitIsTimer > 0 {
 		if holder, exists :=state.GetTimer(act); exists {
 			holder.SetLastExecCtx(eCtx)
 		}
 	}
+	eCtx.updateTimers = 0
 }
 
 // CreateTimer creates a timer, note: can only have one active timer at a time for an activity
