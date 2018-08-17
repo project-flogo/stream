@@ -140,7 +140,7 @@ func (s *StreamAction) Run(context context.Context, inputs map[string]*data.Attr
 	go func() {
 
 		defer handler.Done()
-		data, err := s.inst.Run(discriminator, inputs)
+		data, status, err := s.inst.Run(discriminator, inputs)
 
 		if err != nil {
 			handler.HandleResult(nil, err)
@@ -148,7 +148,7 @@ func (s *StreamAction) Run(context context.Context, inputs map[string]*data.Attr
 			handler.HandleResult(data, err)
 		}
 
-		if s.outChannel != nil {
+		if s.outChannel != nil  && status == pipeline.ExecStatusCompleted{
 			s.outChannel <- data
 		}
 	}()

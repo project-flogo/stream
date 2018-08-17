@@ -36,7 +36,7 @@ func (inst *Instance) Id() string {
 
 //consider a start/stop instance?
 
-func (inst *Instance) Run(discriminator string, input map[string]*data.Attribute) (output map[string]*data.Attribute, err error) {
+func (inst *Instance) Run(discriminator string, input map[string]*data.Attribute) (output map[string]*data.Attribute, status ExecutionStatus, err error) {
 
 	hasWork := true
 
@@ -55,14 +55,14 @@ func (inst *Instance) Run(discriminator string, input map[string]*data.Attribute
 	}
 
 	if ctx.status == ExecStatusCompleted {
-		return ctx.pipeineOutput, nil
+		return ctx.pipeineOutput, ctx.status,nil
 	}
 
 	if ctx.status == ExecStatusFailed {
-		return nil, err
+		return nil, ctx.status, err
 	}
 
-	return nil, nil
+	return nil, status, nil
 }
 
 func (inst *Instance) DoStep(ctx *ExecutionContext, resume bool) (hasWork bool, err error) {
