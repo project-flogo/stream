@@ -17,7 +17,7 @@ type Instance struct {
 	outChannel  chan interface{}
 }
 
-func NewInstance(definition *Definition, id string, single bool) *Instance {
+func NewInstance(definition *Definition, id string, single bool, outChannel chan interface{}) *Instance {
 
 	var sm StateManager
 
@@ -27,7 +27,7 @@ func NewInstance(definition *Definition, id string, single bool) *Instance {
 		sm = NewMultiStateManager()
 	}
 
-	return &Instance{def: definition, id: id, sm: sm}
+	return &Instance{def: definition, id: id, sm: sm, outChannel:outChannel}
 }
 
 func (inst *Instance) Id() string {

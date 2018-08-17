@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/flogo-oss/stream/pipeline"
-	"github.com/TIBCOSoftware/flogo-lib/core/data"
-	"github.com/TIBCOSoftware/flogo-lib/core/action"
 	"github.com/TIBCOSoftware/flogo-lib/app/resource"
+	"github.com/TIBCOSoftware/flogo-lib/core/action"
+	"github.com/TIBCOSoftware/flogo-lib/core/data"
 	"github.com/TIBCOSoftware/flogo-lib/engine/channels"
 	"github.com/TIBCOSoftware/flogo-lib/logger"
+	"github.com/flogo-oss/stream/pipeline"
 )
 
 const (
@@ -22,18 +22,18 @@ var manager *pipeline.Manager
 
 type StreamAction struct {
 	//pipelineURI string
-	ioMetadata  *data.IOMetadata
-	definition  *pipeline.Definition
-	outChannel  chan interface{}
+	ioMetadata *data.IOMetadata
+	definition *pipeline.Definition
+	outChannel chan interface{}
 
 	inst    *pipeline.Instance
 	groupBy string
 }
 
 const (
-	sPipelineURI = "pipelineURI"
-    sGroupBy     = "groupBy"
-    sOutputChannel = "outputChannel"
+	sPipelineURI   = "pipelineURI"
+	sGroupBy       = "groupBy"
+	sOutputChannel = "outputChannel"
 )
 
 //we can generate json from this! - we could also create a "validate-able" object from this
@@ -45,9 +45,9 @@ type Settings struct {
 
 //todo fix this
 var metadata = &action.Metadata{ID: "github.com/flogo-oss/stream/action", Async: true,
-Settings: map[string]*data.Attribute{"pipeline":data.NewZeroAttribute("pipeline", data.TypeString),
-	"groupBy":data.NewZeroAttribute("groupBy", data.TypeString),
-	"outputChannel":data.NewZeroAttribute("outputChannel", data.TypeString)}}
+	Settings: map[string]*data.Attribute{"pipeline": data.NewZeroAttribute("pipeline", data.TypeString),
+		"groupBy":       data.NewZeroAttribute("groupBy", data.TypeString),
+		"outputChannel": data.NewZeroAttribute("outputChannel", data.TypeString)}}
 
 func init() {
 	action.RegisterFactory(actionRef, &ActionFactory{})
@@ -109,7 +109,7 @@ func (f *ActionFactory) New(config *action.Config) (action.Action, error) {
 	}
 
 	//note: single pipeline instance for the moment
-	inst := pipeline.NewInstance(def, "", settings.GroupBy == "")
+	inst := pipeline.NewInstance(def, "", settings.GroupBy == "", streamAction.outChannel)
 	streamAction.inst = inst
 
 	return streamAction, nil
@@ -148,7 +148,7 @@ func (s *StreamAction) Run(context context.Context, inputs map[string]*data.Attr
 			handler.HandleResult(data, err)
 		}
 
-		if s.outChannel != nil  && status == pipeline.ExecStatusCompleted{
+		if s.outChannel != nil && status == pipeline.ExecStatusCompleted {
 			s.outChannel <- data
 		}
 	}()
