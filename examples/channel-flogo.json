@@ -21,7 +21,7 @@
             "path": "/test/:val"
           },
           "action": {
-            "id": "simple_agg",
+            "id": "simple_filter",
             "mappings": {
               "input": [
                 {
@@ -46,7 +46,7 @@
             "mappings": {
               "input": [
                 {
-                  "mapTo": "rinput", "type": "assign", "value": "$.out"
+                  "mapTo": "rinput", "type": "assign", "value": "$.data.out"
                 }
               ]
             }
@@ -129,7 +129,7 @@
           {
             "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/log",
             "input": {
-              "message": "=$pipeline.rinput"
+              "message": "=string.concat('fromChannel: ', $pipeline.rinput)"
             }
           }
         ]
