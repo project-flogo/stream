@@ -6,6 +6,7 @@
   "title": "Flogo Stream",
   "description": "Simple Stream Action",
   "homepage": "https://github.com/flogo-oss/stream/tree/master",
+  "async": true,
   "settings": [
     {
       "name": "pipelineURI",

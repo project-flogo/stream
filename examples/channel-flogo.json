@@ -21,7 +21,7 @@
             "path": "/test/:val"
           },
           "action": {
-            "id": "simple_agg",
+            "id": "simple_filter",
             "mappings": {
               "input": [
                 {
@@ -46,7 +46,7 @@
             "mappings": {
               "input": [
                 {
-                  "mapTo": "input", "type": "assign", "value": "$.out"
+                  "mapTo": "rinput", "type": "assign", "value": "$.data.out"
                 }
               ]
             }
@@ -58,10 +58,10 @@
 
   "actions": [
     {
-      "id": "simple_agg",
+      "id": "simple_filter",
       "ref": "github.com/flogo-oss/stream",
       "settings": {
-        "pipelineURI": "res://pipeline:simple",
+        "pipelineURI": "res://pipeline:simple_filter",
         "outputChannel" : "test"
       }
     },
@@ -69,14 +69,14 @@
       "id": "simple_report",
       "ref": "github.com/flogo-oss/stream",
       "settings": {
-        "pipelineURI": "res://pipeline:simple"
+        "pipelineURI": "res://pipeline:simple_report"
       }
     }
   ],
 
   "resources": [
     {
-      "id": "pipeline:simple_agg",
+      "id": "pipeline:simple_filter",
       "data": {
         "metadata": {
           "input": [
@@ -87,39 +87,7 @@
           ],
           "output": [
             {
-              "name": "result",
-              "type": "integer"
-            }
-          ]
-        },
-        "stages": [
-          {
-            "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/aggregate",
-            "settings": {
-              "function": "sum",
-              "windowType": "timeTumbling",
-              "windowSize": "5000"
-            },
-            "input": {
-              "value": "=$.input"
-            }
-          },
-          {
-            "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/log",
-            "input": {
-              "value": "=$.result"
-            }
-          }
-        ]
-      }
-    },
-    {
-      "id": "pipeline:simple_report",
-      "data": {
-        "metadata": {
-          "input": [
-            {
-              "name": "input",
+              "name": "out",
               "type": "integer"
             }
           ]
@@ -131,13 +99,37 @@
               "type": "non-zero"
             },
             "input": {
-              "value": "=$.input"
+              "value": "=$pipeline.input"
+            },
+            "output": {
+              "pipeline.out": "=$.value"
             }
           },
           {
             "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/log",
             "input": {
               "message": "=$.value"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "pipeline:simple_report",
+      "data": {
+        "metadata": {
+          "input": [
+            {
+              "name": "rinput",
+              "type": "integer"
+            }
+          ]
+        },
+        "stages": [
+          {
+            "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/log",
+            "input": {
+              "message": "=string.concat('fromChannel: ', $pipeline.rinput)"
             }
           }
         ]

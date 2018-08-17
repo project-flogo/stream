@@ -4,7 +4,9 @@ import (
 	"github.com/TIBCOSoftware/flogo-lib/core/data"
 	"github.com/TIBCOSoftware/flogo-lib/logger"
 	"github.com/TIBCOSoftware/flogo-lib/core/activity"
-		)
+	"strings"
+	"errors"
+)
 
 type Instance struct {
 	def    *Definition
@@ -12,6 +14,7 @@ type Instance struct {
 	status Status
 
 	sm StateManager
+	outChannel  chan interface{}
 }
 
 func NewInstance(definition *Definition, id string, single bool) *Instance {
@@ -24,7 +27,7 @@ func NewInstance(definition *Definition, id string, single bool) *Instance {
 		sm = NewMultiStateManager()
 	}
 
-	return &Instance{def:definition, id:id, sm:sm}
+	return &Instance{def: definition, id: id, sm: sm}
 }
 
 func (inst *Instance) Id() string {
@@ -37,11 +40,11 @@ func (inst *Instance) Run(discriminator string, input map[string]*data.Attribute
 
 	hasWork := true
 
-	// todo add initial input to execution context
-	ctx := &ExecutionContext{discriminator:discriminator, pipeline:inst }
+	ctx := &ExecutionContext{discriminator: discriminator, pipeline: inst}
+	ctx.pipelineInput = input
 
-	//todo make this look nicer
-	ctx.output = input
+	//pipeline - current output is the input to the next stage
+	ctx.currentOutput = input
 
 	for hasWork {
 
@@ -52,7 +55,7 @@ func (inst *Instance) Run(discriminator string, input map[string]*data.Attribute
 	}
 
 	if ctx.status == ExecStatusCompleted {
-		return ctx.input, nil
+		return ctx.pipeineOutput, nil
 	}
 
 	if ctx.status == ExecStatusFailed {
@@ -111,8 +114,8 @@ func ExecuteCurrentStage(ctx *ExecutionContext) (done bool, err error) {
 
 	if stage.inputs != nil {
 
-		in := data.NewSimpleScopeFromMap(ctx.output, ctx.pipelineScope())
-		ctx.input, err = stage.inputs.GetAttrs(in)
+		in := &StageInputScope{execCtx: ctx}
+		ctx.currentInput, err = stage.inputs.GetAttrs(in)
 		if err != nil {
 			return false, err
 		}
@@ -120,20 +123,43 @@ func ExecuteCurrentStage(ctx *ExecutionContext) (done bool, err error) {
 	}
 
 	//clear previous output
-	ctx.output = make(map[string]*data.Attribute)
+	ctx.currentOutput = make(map[string]*data.Attribute)
 
 	logger.Debugf("Pipeline[%s] - Evaluating Activity", stage.act.Metadata().ID)
 
 	//eval activity/stage
 	done, err = stage.act.Eval(ctx)
 
-	//add attrs to pipeline
-	if done && len(stage.promote) > 0 {
-		scope := ctx.pipelineScope()
+	if done {
+		currentAttrs := ctx.currentOutput
 
-		for key, value := range ctx.input {
-			if _,exists := stage.promote[key]; exists{
-				scope.AddAttr("_P." + key, value.Type(), value.Name())
+		if stage.outputs != nil {
+			in := &StageOutputScope{execCtx: ctx}
+			additionalAttrs, err := stage.outputs.GetDetailedAttrs(in)
+			if err != nil {
+				return false, err
+			}
+			for name, attr := range additionalAttrs {
+				if attr.isNew {
+					if strings.HasPrefix(name, "pipeline.") {
+						attrName := name[9:]
+						if ctx.pipeineOutput == nil {
+							ctx.pipeineOutput = make(map[string]*data.Attribute)
+						}
+						mdAttr := ctx.pipeline.def.metadata.Output[attrName]
+						if mdAttr != nil {
+							ctx.pipeineOutput[attrName], err = data.NewAttribute(attrName, mdAttr.Type(), attr.Value())
+							if err != nil {
+								return false, err
+							}
+						} else {
+							return false, errors.New("unknown pipeline output: " + attrName)
+						}
+						//get the pipeline metadata
+					}
+				} else {
+					currentAttrs[name] = attr.Attribute
+				}
 			}
 		}
 	}
@@ -158,7 +184,10 @@ func Resume(ctx *ExecutionContext) error {
 		resume = false
 	}
 
-	//if we emit on done, we need to return some output
+	if ctx.status == ExecStatusCompleted && ctx.pipeline.outChannel != nil {
+		ctx.pipeline.outChannel <- ctx.pipeineOutput
+	}
+
 	return nil
 }
 
@@ -173,17 +202,6 @@ func ResumeCurrentStage(ctx *ExecutionContext) (done bool, err error) {
 	//post-eval activity/stage
 	if ok {
 		done, err = aact.PostEval(ctx, nil)
-	}
-
-	//add attrs to pipeline
-	if done && len(stage.promote) > 0 {
-		scope := ctx.pipelineScope()
-
-		for key, value := range ctx.input {
-			if _,exists := stage.promote[key]; exists{
-				scope.AddAttr("_P." + key, value.Type(), value.Name())
-			}
-		}
 	}
 
 	return done, err

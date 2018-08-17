@@ -51,8 +51,11 @@ type ExecutionContext struct {
 	stageId int
 	status  ExecutionStatus
 
-	input  map[string]*data.Attribute
-	output map[string]*data.Attribute
+	pipelineInput map[string]*data.Attribute
+	pipeineOutput map[string]*data.Attribute
+
+	currentInput  map[string]*data.Attribute
+	currentOutput map[string]*data.Attribute
 }
 
 func (eCtx *ExecutionContext) Status() ExecutionStatus {
@@ -119,7 +122,7 @@ func (eCtx *ExecutionContext) GetSetting(setting string) (value interface{}, exi
 
 func (eCtx *ExecutionContext) GetInput(name string) interface{} {
 
-	attr, found := eCtx.input[name]
+	attr, found := eCtx.currentInput[name]
 	if found {
 		return attr.Value()
 	} else {
@@ -134,7 +137,7 @@ func (eCtx *ExecutionContext) GetInput(name string) interface{} {
 }
 
 func (eCtx *ExecutionContext) GetOutput(name string) interface{} {
-	attr, found := eCtx.output[name]
+	attr, found := eCtx.currentOutput[name]
 	if found {
 		return attr.Value()
 	} else {
@@ -150,18 +153,18 @@ func (eCtx *ExecutionContext) GetOutput(name string) interface{} {
 
 func (eCtx *ExecutionContext) SetOutput(name string, value interface{}) {
 
-	if eCtx.output == nil {
-		eCtx.output = make(map[string]*data.Attribute)
+	if eCtx.currentOutput == nil {
+		eCtx.currentOutput = make(map[string]*data.Attribute)
 	}
 
-	attr, found := eCtx.output[name]
+	attr, found := eCtx.currentOutput[name]
 	if found {
 		attr.SetValue(value)
 	} else {
 		//get type from the stages output or existing metadata
 		//todo
 		attr, _ = data.NewAttribute(name, data.TypeAny, value)
-		eCtx.output[name] = attr
+		eCtx.currentOutput[name] = attr
 	}
 }
 
@@ -224,34 +227,61 @@ func (eCtx *ExecutionContext) CancelTimer(repeating bool) {
 }
 
 // CreateTimer creates a timer, note: can only have one active timer at a time for an activity
+func (eCtx *ExecutionContext) UpdateTimer(repeating bool) {
+	act := eCtx.currentStage().act
+	state := eCtx.pipeline.sm.GetState(eCtx.discriminator)
+
+	if repeating {
+		if holder, exists :=state.GetTicker(act); exists {
+			holder.SetLastExecCtx(eCtx)
+		}
+	} else {
+		if holder, exists :=state.GetTimer(act); exists {
+			holder.SetLastExecCtx(eCtx)
+		}
+	}
+}
+
+// CreateTimer creates a timer, note: can only have one active timer at a time for an activity
 func (eCtx *ExecutionContext) CreateTimer(interval time.Duration, callback support.TimerCallback, repeating bool) error {
 
-	discriminator := eCtx.discriminator
-	inst := eCtx.pipeline
-	stageId := eCtx.stageId
+	//todo add "clone ctx flag, incase exec context isn't discarded)
+	//discriminator := eCtx.discriminator
+	//inst := eCtx.pipeline
+	//stageId := eCtx.stageId
 
 	state := eCtx.pipeline.sm.GetState(eCtx.discriminator)
 
 	if repeating {
 		//create go ticker
 
-		ticker, err := state.NewTicker(eCtx.currentStage().act, interval)
+		holder, err := state.NewTicker(eCtx.currentStage().act, interval)
 		if err != nil {
 			return err
 		}
+		//todo should this clone ctx?
+		holder.SetLastExecCtx(eCtx)
 
 		go func() {
-			for range ticker.C {
 
-				newCtx := &ExecutionContext{discriminator: discriminator, pipeline: inst}
-				newCtx.stageId = stageId
-				newCtx.status = ExecStatusActive
+			for range holder.ticker.C {
 
-				logger.Debugf("Repeating timer fired for activity: %s", newCtx.currentStage().act.Metadata().ID)
+				newCtx := holder.GetLastExecCtx()
+				//newCtx := &ExecutionContext{discriminator: discriminator, pipeline: inst}
+				//newCtx.stageId = stageId
+				//newCtx.status = ExecStatusActive
 
-				resume := callback(newCtx)
-				if resume {
-					Resume(newCtx)
+				//todo - what should we do if no samples have come in a window,  ignore for now
+
+				if newCtx != nil {
+					logger.Debugf("Repeating timer fired for activity: %s", newCtx.currentStage().act.Metadata().ID)
+
+					resume := callback(newCtx)
+					if resume {
+						Resume(newCtx)
+					}
+				} else {
+					logger.Debugf("Repeating timer fired for activity: %s, but not running since no samples in window", "activity")
 				}
 			}
 		}()
@@ -259,16 +289,19 @@ func (eCtx *ExecutionContext) CreateTimer(interval time.Duration, callback suppo
 	} else {
 		//create go timer
 
-		timer, err := state.NewTimer(eCtx.currentStage().act, interval)
+		holder, err := state.NewTimer(eCtx.currentStage().act, interval)
 		if err != nil {
 			return err
 		}
+		//todo should this clone ctx?
+		holder.SetLastExecCtx(eCtx)
 
 		go func() {
-			<-timer.C
-			newCtx := &ExecutionContext{discriminator: discriminator, pipeline: inst}
-			newCtx.stageId = stageId
-			newCtx.status = ExecStatusActive
+			<-holder.timer.C
+			newCtx := holder.GetLastExecCtx()
+			//newCtx := &ExecutionContext{discriminator: discriminator, pipeline: inst}
+			//newCtx.stageId = stageId
+			//newCtx.status = ExecStatusActive
 
 			logger.Debugf("Timeout timer fired for activity: %s", newCtx.currentStage().act.Metadata().ID)
 

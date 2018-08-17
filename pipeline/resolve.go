@@ -57,11 +57,23 @@ func (r *Resolver) Resolve(toResolve string, scope data.Scope) (value interface{
 			return "", err
 		}
 	case "pipeline":
-		attr, exists := scope.GetAttr("_P." + details.Property)
-		if !exists {
-			return nil, fmt.Errorf("failed to resolve attr: '%s', not found in pipeline", details.Property)
+		if ms, ok := scope.(MultiScope); ok {
+
+			//if details.out, throw error
+			attr, exists := ms.GetAttrByScope("pipeline", details.Property)
+			if !exists {
+				return nil, fmt.Errorf("failed to resolve attr: '%s', not found in pipeline", details.Property)
+			}
+			value = attr.Value()
 		}
-		value = attr.Value()
+	case "input":
+		if ms, ok := scope.(MultiScope); ok {
+			attr, exists := ms.GetAttrByScope("input", details.Property)
+			if !exists {
+				return nil, fmt.Errorf("failed to resolve attr: '%s', not found in input scope", details.Property)
+			}
+			value = attr.Value()
+		}
 	case ".":
 		//Current scope resolution
 		attr, exists := scope.GetAttr(details.Property)

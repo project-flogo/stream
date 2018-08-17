@@ -19,15 +19,15 @@ type State interface {
 	//GetSharedTempData gets the activity instance specific shared data
 	GetSharedData(act activity.Activity) map[string]interface{}
 
-	NewTicker(act activity.Activity, interval time.Duration) (*time.Ticker, error)
+	NewTicker(act activity.Activity, interval time.Duration) (*TickerHolder, error)
 
-	GetTicker(act activity.Activity) (*time.Ticker, bool)
+	GetTicker(act activity.Activity) (*TickerHolder, bool)
 
 	RemoveTicker(act activity.Activity) bool
 
-	NewTimer(act activity.Activity, interval time.Duration) (*time.Timer, error)
+	NewTimer(act activity.Activity, interval time.Duration) (*TimerHolder, error)
 
-	GetTimer(act activity.Activity) (*time.Timer, bool)
+	GetTimer(act activity.Activity) (*TimerHolder, bool)
 
 	RemoveTimer(act activity.Activity) bool
 }
@@ -92,8 +92,8 @@ type simpleState struct {
 
 	//todo optimize: share tickers closer to instance level (there could even be 1 per difinition, just multiple callbacks)
 
-	tickers map[activity.Activity]*time.Ticker
-	timers  map[activity.Activity]*time.Timer
+	tickers map[activity.Activity]*TickerHolder
+	timers  map[activity.Activity]*TimerHolder
 }
 
 func (p *simpleState) GetScope() data.MutableScope {
@@ -115,10 +115,10 @@ func (p *simpleState) GetSharedData(act activity.Activity) map[string]interface{
 	return sd
 }
 
-func (p *simpleState) NewTicker(act activity.Activity, interval time.Duration) (*time.Ticker, error) {
+func (p *simpleState) NewTicker(act activity.Activity, interval time.Duration) (*TickerHolder, error) {
 
 	if p.tickers == nil {
-		p.tickers = make(map[activity.Activity]*time.Ticker)
+		p.tickers = make(map[activity.Activity]*TickerHolder)
 	} else {
 		_, exists := p.tickers[act]
 		if exists {
@@ -127,12 +127,13 @@ func (p *simpleState) NewTicker(act activity.Activity, interval time.Duration) (
 	}
 
 	ticker := time.NewTicker(interval)
-	p.tickers[act] = ticker
+	holder := &TickerHolder{mutex:&sync.RWMutex{}, ticker: ticker}
+	p.tickers[act] = holder
 
-	return ticker, nil
+	return holder, nil
 }
 
-func (p *simpleState) GetTicker(act activity.Activity) (*time.Ticker, bool) {
+func (p *simpleState) GetTicker(act activity.Activity) (*TickerHolder, bool) {
 
 	if p.tickers == nil {
 		return nil, false
@@ -149,9 +150,9 @@ func (p *simpleState) RemoveTicker(act activity.Activity) bool {
 		return false
 	}
 
-	ticker, exists := p.tickers[act]
+	holder, exists := p.tickers[act]
 	if exists {
-		ticker.Stop()
+		holder.ticker.Stop()
 		delete(p.tickers, act)
 		return true
 	}
@@ -159,10 +160,10 @@ func (p *simpleState) RemoveTicker(act activity.Activity) bool {
 	return false
 }
 
-func (p *simpleState) NewTimer(act activity.Activity, interval time.Duration) (*time.Timer, error) {
+func (p *simpleState) NewTimer(act activity.Activity, interval time.Duration) (*TimerHolder, error) {
 
 	if p.timers == nil {
-		p.timers = make(map[activity.Activity]*time.Timer)
+		p.timers = make(map[activity.Activity]*TimerHolder)
 	} else {
 		_, exists := p.tickers[act]
 		if exists {
@@ -171,20 +172,21 @@ func (p *simpleState) NewTimer(act activity.Activity, interval time.Duration) (*
 	}
 
 	timer := time.NewTimer(interval)
-	p.timers[act] = timer
+	holder := &TimerHolder{mutex:&sync.RWMutex{}, timer: timer}
+	p.timers[act] = holder
 
-	return timer, nil
+	return holder, nil
 }
 
-func (p *simpleState) GetTimer(act activity.Activity) (*time.Timer, bool) {
+func (p *simpleState) GetTimer(act activity.Activity) (*TimerHolder, bool) {
 
 	if p.timers == nil {
 		return nil, false
 	}
 
-	timer, exists := p.timers[act]
+	holder, exists := p.timers[act]
 
-	return timer, exists
+	return holder, exists
 }
 
 func (p *simpleState) RemoveTimer(act activity.Activity) bool {
@@ -193,12 +195,62 @@ func (p *simpleState) RemoveTimer(act activity.Activity) bool {
 		return false
 	}
 
-	timer, exists := p.timers[act]
+	holder, exists := p.timers[act]
 	if exists {
-		timer.Stop()
+		holder.GetTimer().Stop()
 		delete(p.timers, act)
 		return true
 	}
 
 	return false
+}
+
+type TickerHolder struct {
+	ticker  *time.Ticker
+	execCtx *ExecutionContext
+	mutex   *sync.RWMutex
+}
+
+func (t *TickerHolder) GetTicker() *time.Ticker {
+	return t.ticker
+}
+
+func (t *TickerHolder) SetLastExecCtx(ctx *ExecutionContext) {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+
+	t.execCtx = ctx
+}
+
+func (t *TickerHolder) GetLastExecCtx() *ExecutionContext {
+	t.mutex.RLock()
+	defer t.mutex.RUnlock()
+
+	ctx := t.execCtx
+	t.execCtx = nil
+
+	return ctx
+}
+
+type TimerHolder struct {
+	timer   *time.Timer
+	execCtx *ExecutionContext
+	mutex   *sync.RWMutex
+}
+
+func (t *TimerHolder) GetTimer() *time.Timer {
+	return t.timer
+}
+
+func (t *TimerHolder) SetLastExecCtx(ctx *ExecutionContext) {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+
+	t.execCtx = ctx
+}
+
+func (t *TimerHolder) GetLastExecCtx() *ExecutionContext {
+	t.mutex.RLock()
+	defer t.mutex.RUnlock()
+	return t.execCtx
 }
