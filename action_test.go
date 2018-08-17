@@ -10,6 +10,8 @@ import (
 	"github.com/TIBCOSoftware/flogo-lib/core/action"
 	"github.com/TIBCOSoftware/flogo-lib/app/resource"
 	"github.com/TIBCOSoftware/flogo-lib/engine/channels"
+	"github.com/TIBCOSoftware/flogo-lib/core/data"
+	"fmt"
 )
 
 
@@ -73,4 +75,12 @@ func TestActionFactory_New(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotNil(t, act)
+}
+
+func TestBla(t *testing.T)  {
+	v,_ := data.GetResolutionDetails("$pipeline[in].input")
+	fmt.Printf("value: %+v\n", v)
+
+	v2,_ := data.GetResolutionDetails("$pipeline.input")
+	fmt.Printf("value: %+v\n", v2)
 }

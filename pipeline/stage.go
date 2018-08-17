@@ -21,11 +21,9 @@ type Stage struct {
 	act      activity.Activity
 	settings map[string]*data.Attribute
 	inputs   *InputValues
+	outputs  *InputValues
 
 	outputAttrs map[string]*data.Attribute
-
-	// do we need outputMapper instead?
-	promote map[string]struct{} //promote these outputs to the pipeline
 }
 
 type StageConfig struct {
@@ -42,7 +40,7 @@ func NewStage(config *StageConfig) (*Stage, error) {
 
 	act := activity.Get(config.Ref)
 	if act == nil {
-		return nil, errors.New("Unsupported Activity:" + config.Ref)
+		return nil, errors.New("unsupported Activity:" + config.Ref)
 	}
 
 	f := activity.GetFactory(config.Ref)
@@ -76,7 +74,7 @@ func NewStage(config *StageConfig) (*Stage, error) {
 	if len(inputAttrs) > 0 {
 
 		var err error
-		stage.inputs, err = NewInputValues(act.Metadata().Input, GetDataResolver(), inputAttrs)
+		stage.inputs, err = NewInputValues(act.Metadata().Input, GetDataResolver(), inputAttrs, false)
 
 		if err != nil {
 			return nil, err
@@ -87,26 +85,30 @@ func NewStage(config *StageConfig) (*Stage, error) {
 
 	if len(outputAttrs) > 0 {
 
-		stage.outputAttrs = make(map[string]*data.Attribute, len(outputAttrs))
+		var err error
+		stage.outputs, err = NewInputValues(act.Metadata().Output, GetDataResolver(), outputAttrs, true)
 
-		for name, value := range outputAttrs {
-
-			attr := act.Metadata().Output[name]
-
-			if attr != nil {
-				//todo handle error
-				stage.outputAttrs[name], _ = data.NewAttribute(name, attr.Type(), value)
-			}
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	if len(config.Promotions) > 0 {
-		stage.promote = make(map[string]struct{})
-
-		for _, value := range config.Promotions {
-			stage.promote[value] = exists
-		}
-	}
+	//outputAttrs := config.OutputAttrs
+	//
+	//if len(outputAttrs) > 0 {
+	//
+	//	stage.outputAttrs = make(map[string]*data.Attribute, len(outputAttrs))
+	//
+	//	for name, value := range outputAttrs {
+	//
+	//		attr := act.Metadata().Output[name]
+	//
+	//		if attr != nil {
+	//			//todo handle error
+	//			stage.outputAttrs[name], _ = data.NewAttribute(name, attr.Type(), value)
+	//		}
+	//	}
+	//}
 
 	return stage, nil
 }

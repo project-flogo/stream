@@ -167,3 +167,97 @@ func (s *SimpleScope) AddAttr(name string, valueType data.Type, value interface{
 
 	return attr
 }
+
+// SimpleScope is a basic implementation of a scope
+type StageInputScope struct {
+	execCtx *ExecutionContext
+}
+
+// GetAttr implements Scope.GetAttr
+func (s *StageInputScope) GetAttr(name string) (attr *data.Attribute, exists bool) {
+
+	attrs := s.execCtx.currentOutput
+
+	attr, found := attrs[name]
+
+	if found {
+		return attr, true
+	}
+
+	return attr, found
+}
+
+func (s *StageInputScope) GetAttrByScope(scope string, name string) (attr *data.Attribute, exists bool) {
+
+	//on input
+	//   get pipeline inputs : $pipeline[in]
+	//   get previous stage output : $.
+
+	attrs := s.execCtx.currentOutput
+
+	if scope == "pipeline" {
+		attrs = s.execCtx.pipelineInput
+	}
+
+	attr, found := attrs[name]
+
+	if found {
+		return attr, true
+	}
+
+	return attr, found
+}
+
+// SetAttrValue implements Scope.SetAttrValue
+func (s *StageInputScope) SetAttrValue(name string, value interface{}) error {
+	return errors.New("read-only scope")
+}
+
+// SimpleScope is a basic implementation of a scope
+type StageOutputScope struct {
+	execCtx *ExecutionContext
+}
+
+// GetAttr implements Scope.GetAttr
+func (s *StageOutputScope) GetAttr(name string) (attr *data.Attribute, exists bool) {
+
+	attrs := s.execCtx.currentOutput
+
+	attr, found := attrs[name]
+
+	if found {
+		return attr, true
+	}
+
+	return attr, found
+}
+
+func (s *StageOutputScope) GetAttrByScope(scope string, name string) (attr *data.Attribute, exists bool) {
+
+	attrs := s.execCtx.currentOutput
+
+	switch scope {
+	case "pipeline":
+		attrs = s.execCtx.pipelineInput
+	case "input":
+		attrs = s.execCtx.currentInput
+	}
+
+	attr, found := attrs[name]
+
+	if found {
+		return attr, true
+	}
+
+	return attr, found
+}
+
+// SetAttrValue implements Scope.SetAttrValue
+func (s *StageOutputScope) SetAttrValue(name string, value interface{}) error {
+	return errors.New("read-only scope")
+}
+
+
+type MultiScope interface {
+	GetAttrByScope(scope string, name string) (attr *data.Attribute, exists bool)
+}

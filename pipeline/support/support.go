@@ -16,6 +16,8 @@ type TimerSupport interface {
 	// CancelTimer cancels the existing timer
 	CancelTimer(repeating bool)
 
+	UpdateTimer(repeating bool)
+
 	// CreateTimer creates a timer, note: can only have one active timer at a time for an activity
 	CreateTimer(interval time.Duration, callback TimerCallback, repeating bool) error
 }

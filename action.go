@@ -3,13 +3,14 @@ package stream
 import (
 	"context"
 	"errors"
-		"fmt"
+	"fmt"
 
 	"github.com/flogo-oss/stream/pipeline"
 	"github.com/TIBCOSoftware/flogo-lib/core/data"
 	"github.com/TIBCOSoftware/flogo-lib/core/action"
 	"github.com/TIBCOSoftware/flogo-lib/app/resource"
 	"github.com/TIBCOSoftware/flogo-lib/engine/channels"
+	"github.com/TIBCOSoftware/flogo-lib/logger"
 )
 
 const (
@@ -43,7 +44,7 @@ type Settings struct {
 }
 
 //todo fix this
-var metadata = &action.Metadata{ID: "github.com/flogo-oss/stream/action",
+var metadata = &action.Metadata{ID: "github.com/flogo-oss/stream/action", Async: true,
 Settings: map[string]*data.Attribute{"pipeline":data.NewZeroAttribute("pipeline", data.TypeString),
 	"groupBy":data.NewZeroAttribute("groupBy", data.TypeString),
 	"outputChannel":data.NewZeroAttribute("outputChannel", data.TypeString)}}
@@ -122,7 +123,7 @@ func (s *StreamAction) IOMetadata() *data.IOMetadata {
 	return s.ioMetadata
 }
 
-func (s *StreamAction) Run(context context.Context, inputs map[string]*data.Attribute) (map[string]*data.Attribute, error) {
+func (s *StreamAction) Run(context context.Context, inputs map[string]*data.Attribute, handler action.ResultHandler) error {
 
 	discriminator := ""
 
@@ -134,7 +135,25 @@ func (s *StreamAction) Run(context context.Context, inputs map[string]*data.Attr
 		}
 	}
 
-	return s.inst.Run(discriminator, inputs)
+	logger.Debugf("Running pipeline")
+
+	go func() {
+
+		defer handler.Done()
+		data, err := s.inst.Run(discriminator, inputs)
+
+		if err != nil {
+			handler.HandleResult(nil, err)
+		} else {
+			handler.HandleResult(data, err)
+		}
+
+		if s.outChannel != nil {
+			s.outChannel <- data
+		}
+	}()
+
+	return nil
 }
 
 func getSettings(config *action.Config) (*Settings, error) {
