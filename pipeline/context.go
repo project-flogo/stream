@@ -271,11 +271,17 @@ func (eCtx *ExecutionContext) CreateTimer(interval time.Duration, callback suppo
 				//newCtx.stageId = stageId
 				//newCtx.status = ExecStatusActive
 
-				logger.Debugf("Repeating timer fired for activity: %s", newCtx.currentStage().act.Metadata().ID)
+				//todo - what should we do if no samples have come in a window,  ignore for now
 
-				resume := callback(newCtx)
-				if resume {
-					Resume(newCtx)
+				if newCtx != nil {
+					logger.Debugf("Repeating timer fired for activity: %s", newCtx.currentStage().act.Metadata().ID)
+
+					resume := callback(newCtx)
+					if resume {
+						Resume(newCtx)
+					}
+				} else {
+					logger.Debugf("Repeating timer fired for activity: %s, but not running since no samples in window", "activity")
 				}
 			}
 		}()

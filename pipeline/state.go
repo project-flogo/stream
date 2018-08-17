@@ -127,7 +127,7 @@ func (p *simpleState) NewTicker(act activity.Activity, interval time.Duration) (
 	}
 
 	ticker := time.NewTicker(interval)
-	holder := &TickerHolder{ticker: ticker}
+	holder := &TickerHolder{mutex:&sync.RWMutex{}, ticker: ticker}
 	p.tickers[act] = holder
 
 	return holder, nil
@@ -172,7 +172,7 @@ func (p *simpleState) NewTimer(act activity.Activity, interval time.Duration) (*
 	}
 
 	timer := time.NewTimer(interval)
-	holder := &TimerHolder{timer: timer}
+	holder := &TimerHolder{mutex:&sync.RWMutex{}, timer: timer}
 	p.timers[act] = holder
 
 	return holder, nil
@@ -225,7 +225,11 @@ func (t *TickerHolder) SetLastExecCtx(ctx *ExecutionContext) {
 func (t *TickerHolder) GetLastExecCtx() *ExecutionContext {
 	t.mutex.RLock()
 	defer t.mutex.RUnlock()
-	return t.execCtx
+
+	ctx := t.execCtx
+	t.execCtx = nil
+
+	return ctx
 }
 
 type TimerHolder struct {
