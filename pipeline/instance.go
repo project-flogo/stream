@@ -1,13 +1,15 @@
 package pipeline
 
 import (
-	"github.com/TIBCOSoftware/flogo-lib/core/data"
-	"github.com/TIBCOSoftware/flogo-lib/logger"
-	"github.com/TIBCOSoftware/flogo-lib/core/activity"
-	"strings"
 	"errors"
 	"fmt"
 	"runtime/debug"
+	"strings"
+
+	"github.com/TIBCOSoftware/flogo-lib/core/activity"
+	"github.com/TIBCOSoftware/flogo-lib/core/data"
+	"github.com/TIBCOSoftware/flogo-lib/engine/channels"
+	"github.com/TIBCOSoftware/flogo-lib/logger"
 )
 
 type Instance struct {
@@ -15,11 +17,11 @@ type Instance struct {
 	id     string
 	status Status
 
-	sm StateManager
-	outChannel  chan interface{}
+	sm         StateManager
+	outChannel channels.Channel
 }
 
-func NewInstance(definition *Definition, id string, single bool, outChannel chan interface{}) *Instance {
+func NewInstance(definition *Definition, id string, single bool, outChannel channels.Channel) *Instance {
 
 	var sm StateManager
 
@@ -29,7 +31,7 @@ func NewInstance(definition *Definition, id string, single bool, outChannel chan
 		sm = NewMultiStateManager()
 	}
 
-	return &Instance{def: definition, id: id, sm: sm, outChannel:outChannel}
+	return &Instance{def: definition, id: id, sm: sm, outChannel: outChannel}
 }
 
 func (inst *Instance) Id() string {
@@ -57,7 +59,7 @@ func (inst *Instance) Run(discriminator string, input map[string]*data.Attribute
 	}
 
 	if ctx.status == ExecStatusCompleted {
-		return ctx.pipeineOutput, ctx.status,nil
+		return ctx.pipeineOutput, ctx.status, nil
 	}
 
 	if ctx.status == ExecStatusFailed {
@@ -202,7 +204,7 @@ func Resume(ctx *ExecutionContext) error {
 	}
 
 	if ctx.status == ExecStatusCompleted && ctx.pipeline.outChannel != nil {
-		ctx.pipeline.outChannel <- ctx.pipeineOutput
+		ctx.pipeline.outChannel.Publish(ctx.pipeineOutput)
 	}
 
 	return nil

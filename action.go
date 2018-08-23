@@ -21,10 +21,9 @@ const (
 var manager *pipeline.Manager
 
 type StreamAction struct {
-	//pipelineURI string
 	ioMetadata *data.IOMetadata
 	definition *pipeline.Definition
-	outChannel chan interface{}
+	outChannel channels.Channel
 
 	inst    *pipeline.Instance
 	groupBy string
@@ -149,7 +148,7 @@ func (s *StreamAction) Run(context context.Context, inputs map[string]*data.Attr
 		}
 
 		if s.outChannel != nil && status == pipeline.ExecStatusCompleted {
-			s.outChannel <- data
+			s.outChannel.Publish(data)
 		}
 	}()
 
