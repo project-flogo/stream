@@ -1,0 +1,82 @@
+{
+  "name": "stream",
+  "type": "flogo:app",
+  "version": "0.0.1",
+  "appModel": "1.0.0",
+  "triggers": [
+    {
+      "id": "receive_http_message",
+      "ref": "github.com/TIBCOSoftware/flogo-contrib/trigger/rest",
+      "name": "Receive HTTP Message",
+      "settings": {
+        "port": "7777"
+      },
+      "handlers": [
+        {
+          "settings": {
+            "method": "GET",
+            "path": "/test/:val"
+          },
+          "action": {
+            "id": "simple_agg",
+            "input": {
+              "a": "=$.pathParams.val"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "simple_agg",
+      "ref": "github.com/flogo-oss/stream",
+      "settings": {
+        "pipelineURI": "res://pipeline:simple_filter"
+      }
+    }
+  ],
+  "resources": [
+    {
+      "id": "rulesession:asession",
+      "data": {
+        "rules": [
+          {
+            "name": "n1.name == Bob",
+            "conditions": [
+              {
+                "name": "c1",
+                "identifiers": [
+                  "n1"
+                ],
+                "evaluator": "checkForBob"
+              }
+            ],
+            "ruleAction": "checkForBobAction"
+          },
+          {
+            "name": "n1.name == Bob && n1.name == n2.name",
+            "conditions": [
+              {
+                "name": "c1",
+                "identifiers": [
+                  "n1"
+                ],
+                "evaluator": "checkForBob"
+              },
+              {
+                "name": "c2",
+                "identifiers": [
+                  "n1",
+                  "n2"
+                ],
+                "evaluator": "checkSameNamesCondition"
+              }
+            ],
+            "actionFunction": "checkSameNamesAction"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -38,7 +38,6 @@ func (d *Definition) Metadata() *data.IOMetadata {
 	return d.metadata
 }
 
-
 //func NewDefinitionBuilder(name string) *DefinitionBuilder {
 //	return &DefinitionBuilder{
 //		name:     name,

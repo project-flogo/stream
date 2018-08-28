@@ -1,19 +1,18 @@
 package stream
 
 import (
-			"testing"
-
-									_ "github.com/TIBCOSoftware/flogo-contrib/action/flow/test"
-		"encoding/json"
-	"github.com/stretchr/testify/assert"
-	"io/ioutil"
-	"github.com/TIBCOSoftware/flogo-lib/core/action"
-	"github.com/TIBCOSoftware/flogo-lib/app/resource"
-	"github.com/TIBCOSoftware/flogo-lib/engine/channels"
-	"github.com/TIBCOSoftware/flogo-lib/core/data"
+	"encoding/json"
 	"fmt"
-)
+	"io/ioutil"
+	"testing"
 
+	_ "github.com/TIBCOSoftware/flogo-contrib/action/flow/test"
+	"github.com/TIBCOSoftware/flogo-lib/app/resource"
+	"github.com/TIBCOSoftware/flogo-lib/core/action"
+	"github.com/TIBCOSoftware/flogo-lib/core/data"
+	"github.com/TIBCOSoftware/flogo-lib/engine/channels"
+	"github.com/stretchr/testify/assert"
+)
 
 var testMetadata *action.Metadata
 
@@ -41,7 +40,7 @@ const testConfig string = `{
   }
 }
 `
-const resData string =`{
+const resData string = `{
         "metadata": {
           "input": [
             {
@@ -64,7 +63,7 @@ func TestActionFactory_New(t *testing.T) {
 	err := json.Unmarshal([]byte(testConfig), config)
 	assert.Nil(t, err)
 
-	resourceCfg := &resource.Config{ID:"pipeline:test"}
+	resourceCfg := &resource.Config{ID: "pipeline:test"}
 	resourceCfg.Data = []byte(resData)
 	manager.LoadResource(resourceCfg)
 
@@ -77,10 +76,10 @@ func TestActionFactory_New(t *testing.T) {
 	assert.NotNil(t, act)
 }
 
-func TestBla(t *testing.T)  {
-	v,_ := data.GetResolutionDetails("$pipeline[in].input")
+func TestBla(t *testing.T) {
+	v, _ := data.GetResolutionDetails("$pipeline[in].input")
 	fmt.Printf("value: %+v\n", v)
 
-	v2,_ := data.GetResolutionDetails("$pipeline.input")
+	v2, _ := data.GetResolutionDetails("$pipeline.input")
 	fmt.Printf("value: %+v\n", v2)
 }

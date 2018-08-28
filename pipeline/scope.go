@@ -1,9 +1,9 @@
 package pipeline
 
 import (
-	"sync"
-	"fmt"
 	"errors"
+	"fmt"
+	"sync"
 
 	"github.com/TIBCOSoftware/flogo-lib/core/data"
 	"github.com/TIBCOSoftware/flogo-lib/logger"
@@ -256,7 +256,6 @@ func (s *StageOutputScope) GetAttrByScope(scope string, name string) (attr *data
 func (s *StageOutputScope) SetAttrValue(name string, value interface{}) error {
 	return errors.New("read-only scope")
 }
-
 
 type MultiScope interface {
 	GetAttrByScope(scope string, name string) (attr *data.Attribute, exists bool)

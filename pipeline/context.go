@@ -3,10 +3,10 @@ package pipeline
 import (
 	"time"
 
-	"github.com/TIBCOSoftware/flogo-lib/core/data"
 	"github.com/TIBCOSoftware/flogo-lib/core/activity"
-	"github.com/flogo-oss/stream/pipeline/support"
+	"github.com/TIBCOSoftware/flogo-lib/core/data"
 	"github.com/TIBCOSoftware/flogo-lib/logger"
+	"github.com/flogo-oss/stream/pipeline/support"
 )
 
 type Status int
@@ -45,7 +45,7 @@ const (
 )
 
 const (
-	bitIsTimer uint8 = 1
+	bitIsTimer  uint8 = 1
 	bitIsTicker uint8 = 2
 )
 
@@ -248,12 +248,12 @@ func (eCtx *ExecutionContext) UpdateTimers() {
 	act := eCtx.currentStage().act
 	state := eCtx.pipeline.sm.GetState(eCtx.discriminator)
 
-	if eCtx.updateTimers & bitIsTicker > 0 {
-		if holder, exists :=state.GetTicker(act); exists {
+	if eCtx.updateTimers&bitIsTicker > 0 {
+		if holder, exists := state.GetTicker(act); exists {
 			holder.SetLastExecCtx(eCtx)
 		}
-	} else if eCtx.updateTimers & bitIsTimer > 0 {
-		if holder, exists :=state.GetTimer(act); exists {
+	} else if eCtx.updateTimers&bitIsTimer > 0 {
+		if holder, exists := state.GetTimer(act); exists {
 			holder.SetLastExecCtx(eCtx)
 		}
 	}

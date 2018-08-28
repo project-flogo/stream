@@ -1,12 +1,12 @@
 package pipeline
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/TIBCOSoftware/flogo-lib/core/activity"
 	"github.com/TIBCOSoftware/flogo-lib/core/data"
-	"fmt"
 )
 
 type StateManager interface {
@@ -127,7 +127,7 @@ func (p *simpleState) NewTicker(act activity.Activity, interval time.Duration) (
 	}
 
 	ticker := time.NewTicker(interval)
-	holder := &TickerHolder{mutex:&sync.RWMutex{}, ticker: ticker}
+	holder := &TickerHolder{mutex: &sync.RWMutex{}, ticker: ticker}
 	p.tickers[act] = holder
 
 	return holder, nil
@@ -172,7 +172,7 @@ func (p *simpleState) NewTimer(act activity.Activity, interval time.Duration) (*
 	}
 
 	timer := time.NewTimer(interval)
-	holder := &TimerHolder{mutex:&sync.RWMutex{}, timer: timer}
+	holder := &TimerHolder{mutex: &sync.RWMutex{}, timer: timer}
 	p.timers[act] = holder
 
 	return holder, nil

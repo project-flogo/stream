@@ -48,8 +48,8 @@ func NewInputValues(inputMetadata map[string]*data.Attribute, resolver data.Reso
 	return &InputValues{inputs: inputs}, nil
 }
 
-func getAttrInfo(attrName string) (string,data.Type)  {
-	parts := strings.Split(attrName,"|")
+func getAttrInfo(attrName string) (string, data.Type) {
+	parts := strings.Split(attrName, "|")
 
 	if len(parts) > 1 {
 		dt, _ := data.ToTypeEnum(parts[1])
@@ -58,7 +58,6 @@ func getAttrInfo(attrName string) (string,data.Type)  {
 		return attrName, data.TypeAny
 	}
 }
-
 
 type InputValues struct {
 	inputs []InputValue
@@ -121,13 +120,13 @@ func NewInput(attrName string, attrType data.Type, resolver data.Resolver, value
 
 		if attrType == data.TypeString {
 			//a string is expected, so probably a literal?
-			return newFixedInputValue(attrName,attrType, inVal, newAttr)
+			return newFixedInputValue(attrName, attrType, inVal, newAttr)
 		}
 
 		return nil, fmt.Errorf("invalid input value '%s' for type %s", inVal, data.TypeString.String())
 	} else {
 		//not a string, so isn't a mapping
-		return newFixedInputValue(attrName,attrType, value, newAttr)
+		return newFixedInputValue(attrName, attrType, value, newAttr)
 	}
 }
 
@@ -150,7 +149,7 @@ func newFixedInputValue(attrName string, attrType data.Type, value interface{}, 
 		return nil, err
 	}
 
-	return &fixedInputValue{attr: &DetailedAttribute{Attribute:attr, isNew:newAttr}}, nil
+	return &fixedInputValue{attr: &DetailedAttribute{Attribute: attr, isNew: newAttr}}, nil
 }
 
 type fixedInputValue struct {
@@ -163,15 +162,15 @@ func (iv *fixedInputValue) GetValue(scope data.Scope) (*DetailedAttribute, error
 
 func newAssignInputValue(attrName string, attrType data.Type, toResolve string, resolver data.Resolver, newAttr bool) (InputValue, error) {
 
-	return &assignInputValue{attrName: attrName, attrType:attrType, toResolve: toResolve, resolver: resolver, newAttr:newAttr}, nil
+	return &assignInputValue{attrName: attrName, attrType: attrType, toResolve: toResolve, resolver: resolver, newAttr: newAttr}, nil
 }
 
 type assignInputValue struct {
-	attrName       string
-	attrType       data.Type
+	attrName  string
+	attrType  data.Type
 	toResolve string
 	resolver  data.Resolver
-	newAttr bool
+	newAttr   bool
 }
 
 func (iv *assignInputValue) GetValue(scope data.Scope) (*DetailedAttribute, error) {
@@ -187,7 +186,7 @@ func (iv *assignInputValue) GetValue(scope data.Scope) (*DetailedAttribute, erro
 		return nil, err
 	}
 
-	return &DetailedAttribute{Attribute:attr, isNew:iv.newAttr}, nil
+	return &DetailedAttribute{Attribute: attr, isNew: iv.newAttr}, nil
 }
 
 func newExpressionInputValue(attrName string, attrType data.Type, exprStr string, resolver data.Resolver, newAttr bool) (InputValue, error) {
@@ -196,15 +195,15 @@ func newExpressionInputValue(attrName string, attrType data.Type, exprStr string
 	if err != nil {
 		return nil, err
 	}
-	return &expressionInputValue{attrName: attrName, attrType:attrType, parsedExpr: parsedExpr, resolver: resolver, newAttr:newAttr}, nil
+	return &expressionInputValue{attrName: attrName, attrType: attrType, parsedExpr: parsedExpr, resolver: resolver, newAttr: newAttr}, nil
 }
 
 type expressionInputValue struct {
-	attrName       string
-	attrType       data.Type
+	attrName   string
+	attrType   data.Type
 	parsedExpr expr.Expr
 	resolver   data.Resolver
-	newAttr bool
+	newAttr    bool
 }
 
 func (iv *expressionInputValue) GetValue(scope data.Scope) (*DetailedAttribute, error) {
@@ -219,5 +218,5 @@ func (iv *expressionInputValue) GetValue(scope data.Scope) (*DetailedAttribute, 
 		return nil, err
 	}
 
-	return &DetailedAttribute{Attribute:attr, isNew:iv.newAttr}, nil
+	return &DetailedAttribute{Attribute: attr, isNew: iv.newAttr}, nil
 }

@@ -3,9 +3,9 @@
   "type": "flogo:app",
   "version": "0.0.1",
   "appModel": "1.0.0",
-
-  "channels":["test:5"],
-
+  "channels": [
+    "test:5"
+  ],
   "triggers": [
     {
       "id": "receive_http_message",
@@ -25,7 +25,9 @@
             "mappings": {
               "input": [
                 {
-                  "mapTo": "input", "type": "assign", "value": "$.pathParams.val"
+                  "mapTo": "input",
+                  "type": "assign",
+                  "value": "$.pathParams.val"
                 }
               ]
             }
@@ -46,7 +48,9 @@
             "mappings": {
               "input": [
                 {
-                  "mapTo": "rinput", "type": "assign", "value": "$.data.out"
+                  "mapTo": "rinput",
+                  "type": "assign",
+                  "value": "$.data.out"
                 }
               ]
             }
@@ -55,14 +59,13 @@
       ]
     }
   ],
-
   "actions": [
     {
       "id": "simple_filter",
       "ref": "github.com/flogo-oss/stream",
       "settings": {
         "pipelineURI": "res://pipeline:simple_filter",
-        "outputChannel" : "test"
+        "outputChannel": "test"
       }
     },
     {
@@ -73,7 +76,6 @@
       }
     }
   ],
-
   "resources": [
     {
       "id": "pipeline:simple_filter",

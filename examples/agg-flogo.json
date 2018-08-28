@@ -3,7 +3,6 @@
   "type": "flogo:app",
   "version": "0.0.1",
   "appModel": "1.0.0",
-
   "triggers": [
     {
       "id": "receive_http_message",
@@ -23,7 +22,9 @@
             "mappings": {
               "input": [
                 {
-                  "mapTo": "input", "type": "assign", "value": "$.pathParams.val"
+                  "mapTo": "input",
+                  "type": "assign",
+                  "value": "$.pathParams.val"
                 }
               ]
             }
@@ -32,7 +33,6 @@
       ]
     }
   ],
-
   "actions": [
     {
       "id": "simple_agg",
@@ -42,7 +42,6 @@
       }
     }
   ],
-
   "resources": [
     {
       "id": "pipeline:simple_agg",

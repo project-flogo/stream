@@ -139,16 +139,16 @@ func (s *StreamAction) Run(context context.Context, inputs map[string]*data.Attr
 	go func() {
 
 		defer handler.Done()
-		data, status, err := s.inst.Run(discriminator, inputs)
+		retData, status, err := s.inst.Run(discriminator, inputs)
 
 		if err != nil {
 			handler.HandleResult(nil, err)
 		} else {
-			handler.HandleResult(data, err)
+			handler.HandleResult(retData, err)
 		}
 
 		if s.outChannel != nil && status == pipeline.ExecStatusCompleted {
-			s.outChannel.Publish(data)
+			s.outChannel.Publish(retData)
 		}
 	}()
 
