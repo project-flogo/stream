@@ -11,10 +11,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/TIBCOSoftware/flogo-contrib/action/flow/definition"
-	"github.com/TIBCOSoftware/flogo-lib/app/resource"
-	"github.com/TIBCOSoftware/flogo-lib/logger"
-	"github.com/TIBCOSoftware/flogo-lib/util"
+	"github.com/flogo-oss/core/app/resource"
+	"github.com/flogo-oss/core/logger"
+	"github.com/flogo-oss/core/util"
+	"github.com/flogo-oss/flow/definition"
 )
 
 const (

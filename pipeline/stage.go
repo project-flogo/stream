@@ -3,9 +3,9 @@ package pipeline
 import (
 	"errors"
 
-	"github.com/TIBCOSoftware/flogo-lib/core/activity"
-	"github.com/TIBCOSoftware/flogo-lib/core/data"
-	"github.com/TIBCOSoftware/flogo-lib/logger"
+	"github.com/flogo-oss/core/activity"
+	"github.com/flogo-oss/core/data"
+	"github.com/flogo-oss/core/logger"
 )
 
 var (

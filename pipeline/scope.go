@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/TIBCOSoftware/flogo-lib/core/data"
-	"github.com/TIBCOSoftware/flogo-lib/logger"
+	"github.com/flogo-oss/core/data"
+	"github.com/flogo-oss/core/logger"
 )
 
 type SharedScope struct {

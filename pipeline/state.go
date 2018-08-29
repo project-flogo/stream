@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/TIBCOSoftware/flogo-lib/core/activity"
-	"github.com/TIBCOSoftware/flogo-lib/core/data"
+	"github.com/flogo-oss/core/activity"
+	"github.com/flogo-oss/core/data"
 )
 
 type StateManager interface {

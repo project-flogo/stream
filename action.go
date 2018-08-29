@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/TIBCOSoftware/flogo-lib/app/resource"
-	"github.com/TIBCOSoftware/flogo-lib/core/action"
-	"github.com/TIBCOSoftware/flogo-lib/core/data"
-	"github.com/TIBCOSoftware/flogo-lib/engine/channels"
-	"github.com/TIBCOSoftware/flogo-lib/logger"
+	"github.com/flogo-oss/core/action"
+	"github.com/flogo-oss/core/app/resource"
+	"github.com/flogo-oss/core/data"
+	"github.com/flogo-oss/core/engine/channels"
+	"github.com/flogo-oss/core/logger"
 	"github.com/flogo-oss/stream/pipeline"
 )
 

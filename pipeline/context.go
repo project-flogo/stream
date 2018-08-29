@@ -1,11 +1,12 @@
 package pipeline
 
 import (
+	"github.com/flogo-oss/core/data/typed"
 	"time"
 
-	"github.com/TIBCOSoftware/flogo-lib/core/activity"
-	"github.com/TIBCOSoftware/flogo-lib/core/data"
-	"github.com/TIBCOSoftware/flogo-lib/logger"
+	"github.com/flogo-oss/core/activity"
+	"github.com/flogo-oss/core/data"
+	"github.com/flogo-oss/core/logger"
 	"github.com/flogo-oss/stream/pipeline/support"
 )
 
@@ -94,11 +95,11 @@ func (eCtx *ExecutionContext) IOMetadata() *data.IOMetadata {
 	return eCtx.pipeline.def.metadata
 }
 
-func (eCtx *ExecutionContext) Reply(replyData map[string]*data.Attribute, err error) {
+func (eCtx *ExecutionContext) Reply(replyData map[string]typed.Value, err error) {
 	//ignore - not supported by pipeline
 }
 
-func (eCtx *ExecutionContext) Return(returnData map[string]*data.Attribute, err error) {
+func (eCtx *ExecutionContext) Return(returnData map[string]typed.Value, err error) {
 	//ignore - not supported by pipeline
 }
 
@@ -108,6 +109,10 @@ func (eCtx *ExecutionContext) WorkingData() data.Scope {
 
 func (eCtx *ExecutionContext) GetResolver() data.Resolver {
 	return data.GetBasicResolver()
+}
+
+func (eCtx *ExecutionContext) GetDetails() data.StringsMap {
+	return nil
 }
 
 /////////////////////////////////////////

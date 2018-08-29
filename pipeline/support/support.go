@@ -3,7 +3,7 @@ package support
 import (
 	"time"
 
-	"github.com/TIBCOSoftware/flogo-lib/core/activity"
+	"github.com/flogo-oss/core/activity"
 )
 
 type TimerCallback func(ctx activity.Context) (resume bool)

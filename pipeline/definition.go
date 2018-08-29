@@ -1,7 +1,7 @@
 package pipeline
 
 import (
-	"github.com/TIBCOSoftware/flogo-lib/core/data"
+	"github.com/flogo-oss/core/data"
 )
 
 type DefinitionConfig struct {

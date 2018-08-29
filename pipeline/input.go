@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/TIBCOSoftware/flogo-lib/core/data"
-	"github.com/TIBCOSoftware/flogo-lib/core/mapper/exprmapper/expression"
-	"github.com/TIBCOSoftware/flogo-lib/core/mapper/exprmapper/expression/expr"
+	"github.com/flogo-oss/core/core/mapper/exprmapper/expression"
+	"github.com/flogo-oss/core/core/mapper/exprmapper/expression/expr"
+	"github.com/flogo-oss/core/data"
 )
 
 type DetailedAttribute struct {
