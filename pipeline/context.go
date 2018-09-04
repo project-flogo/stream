@@ -8,7 +8,7 @@ import (
 	"github.com/TIBCOSoftware/flogo-lib/core/activity"
 	"github.com/TIBCOSoftware/flogo-lib/core/data"
 	"github.com/TIBCOSoftware/flogo-lib/logger"
-	"github.com/flogo-oss/stream/pipeline/support"
+	"github.com/project-flogo/stream/pipeline/support"
 )
 
 type Status int
