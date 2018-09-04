@@ -10,11 +10,11 @@ import (
 	"github.com/TIBCOSoftware/flogo-lib/core/data"
 	"github.com/TIBCOSoftware/flogo-lib/engine/channels"
 	"github.com/TIBCOSoftware/flogo-lib/logger"
-	"github.com/flogo-oss/stream/pipeline"
+	"github.com/project-flogo/stream/pipeline"
 )
 
 const (
-	actionRef = "github.com/flogo-oss/stream"
+	actionRef = "github.com/project-flogo/stream"
 )
 
 //var idGenerator *util.Generator
@@ -43,7 +43,7 @@ type Settings struct {
 }
 
 //todo fix this
-var metadata = &action.Metadata{ID: "github.com/flogo-oss/stream/action", Async: true,
+var metadata = &action.Metadata{ID: "github.com/project-flogo/stream/action", Async: true,
 	Settings: map[string]*data.Attribute{"pipeline": data.NewZeroAttribute("pipeline", data.TypeString),
 		"groupBy":       data.NewZeroAttribute("groupBy", data.TypeString),
 		"outputChannel": data.NewZeroAttribute("outputChannel", data.TypeString)}}

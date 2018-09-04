@@ -33,7 +33,7 @@ func getTestMetadata(t *testing.T) *action.Metadata {
 
 const testConfig string = `{
   "id": "flogo-stream",
-  "ref": "github.com/flogo-oss/stream",
+  "ref": "github.com/project-flogo/stream",
   "settings": {
     "pipelineURI": "res://pipeline:test",
     "outputChannel": "testChan"
