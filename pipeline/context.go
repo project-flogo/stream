@@ -1,6 +1,8 @@
 package pipeline
 
 import (
+	"fmt"
+	"runtime/debug"
 	"time"
 
 	"github.com/TIBCOSoftware/flogo-lib/core/activity"
@@ -233,7 +235,7 @@ func (eCtx *ExecutionContext) CancelTimer(repeating bool) {
 	}
 }
 
-// CreateTimer creates a timer, note: can only have one active timer at a time for an activity
+// UpdateTimer creates a timer, note: can only have one active timer at a time for an activity
 func (eCtx *ExecutionContext) UpdateTimer(repeating bool) {
 
 	if repeating {
@@ -243,7 +245,7 @@ func (eCtx *ExecutionContext) UpdateTimer(repeating bool) {
 	}
 }
 
-// CreateTimer creates a timer, note: can only have one active timer at a time for an activity
+// UpdateTimers creates a timer, note: can only have one active timer at a time for an activity
 func (eCtx *ExecutionContext) UpdateTimers() {
 	act := eCtx.currentStage().act
 	state := eCtx.pipeline.sm.GetState(eCtx.discriminator)
@@ -294,7 +296,8 @@ func (eCtx *ExecutionContext) CreateTimer(interval time.Duration, callback suppo
 				if newCtx != nil {
 					logger.Debugf("Repeating timer fired for activity: %s", newCtx.currentStage().act.Metadata().ID)
 
-					resume := callback(newCtx)
+					resume := invokeCallback(callback, newCtx)
+					//resume := callback(newCtx)
 					if resume {
 						Resume(newCtx)
 					}
@@ -323,7 +326,8 @@ func (eCtx *ExecutionContext) CreateTimer(interval time.Duration, callback suppo
 
 			logger.Debugf("Timeout timer fired for activity: %s", newCtx.currentStage().act.Metadata().ID)
 
-			resume := callback(newCtx)
+			resume := invokeCallback(callback, newCtx)
+			//resume := callback(newCtx)
 			if resume {
 				Resume(newCtx)
 			}
@@ -331,4 +335,24 @@ func (eCtx *ExecutionContext) CreateTimer(interval time.Duration, callback suppo
 	}
 
 	return nil
+}
+
+
+func invokeCallback(callback support.TimerCallback, ctx activity.Context) (resume bool) {
+
+	defer func() {
+		if r := recover(); r != nil {
+
+			err := fmt.Errorf("unhandled error executing callback for stage '%s' : %v", ctx.Name(), r)
+			logger.Error(err)
+
+			// todo: useful for debugging
+			logger.Debugf("StackTrace: %s", debug.Stack())
+
+			resume = false
+		}
+	}()
+
+	resume = callback(ctx)
+	return resume
 }
