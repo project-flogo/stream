@@ -3,13 +3,13 @@ package pipeline
 import (
 	"errors"
 	"fmt"
+	"github.com/project-flogo/core/data/coerce"
 	"runtime/debug"
 	"strings"
 
-	"github.com/flogo-oss/core/activity"
-	"github.com/flogo-oss/core/data"
-	"github.com/flogo-oss/core/engine/channels"
-	"github.com/flogo-oss/core/logger"
+	"github.com/project-flogo/core/activity"
+	"github.com/project-flogo/core/engine/channels"
+	"github.com/project-flogo/core/logger"
 )
 
 type Instance struct {
@@ -40,7 +40,7 @@ func (inst *Instance) Id() string {
 
 //consider a start/stop instance?
 
-func (inst *Instance) Run(discriminator string, input map[string]*data.Attribute) (output map[string]*data.Attribute, status ExecutionStatus, err error) {
+func (inst *Instance) Run(discriminator string, input map[string]interface{}) (output map[string]interface{}, status ExecutionStatus, err error) {
 
 	hasWork := true
 
@@ -59,7 +59,7 @@ func (inst *Instance) Run(discriminator string, input map[string]*data.Attribute
 	}
 
 	if ctx.status == ExecStatusCompleted {
-		return ctx.pipeineOutput, ctx.status, nil
+		return ctx.pipelineOutput, ctx.status, nil
 	}
 
 	if ctx.status == ExecStatusFailed {
@@ -129,12 +129,14 @@ func ExecuteCurrentStage(ctx *ExecutionContext) (done bool, err error) {
 	//prevent re-execution of stage?
 	stage := ctx.currentStage()
 
-	logger.Debugf("Pipeline[%s] - Executing stage %d", ctx.pipeline.id, ctx.stageId)
+	if logger.DebugEnabled() {
+		logger.Debugf("Pipeline[%s] - Executing stage %d", ctx.pipeline.id, ctx.stageId)
+	}
 
-	if stage.inputs != nil {
+	if stage.inputMapper != nil {
 
 		in := &StageInputScope{execCtx: ctx}
-		ctx.currentInput, err = stage.inputs.GetAttrs(in)
+		ctx.currentInput, err = stage.inputMapper.Apply(in)
 		if err != nil {
 			return false, err
 		}
@@ -142,9 +144,12 @@ func ExecuteCurrentStage(ctx *ExecutionContext) (done bool, err error) {
 	}
 
 	//clear previous output
-	ctx.currentOutput = make(map[string]*data.Attribute)
+	ctx.currentOutput = make(map[string]interface{})
 
-	logger.Debugf("Pipeline[%s] - Evaluating Activity", stage.act.Metadata().ID)
+	if logger.DebugEnabled() {
+		ref := activity.GetRef(stage.act)
+		logger.Debugf("Pipeline[%s] - Evaluating Activity", ref)
+	}
 
 	//eval activity/stage
 	done, err = stage.act.Eval(ctx)
@@ -152,32 +157,32 @@ func ExecuteCurrentStage(ctx *ExecutionContext) (done bool, err error) {
 	if done {
 		currentAttrs := ctx.currentOutput
 
-		if stage.outputs != nil {
+		if stage.outputMapper != nil {
 			in := &StageOutputScope{execCtx: ctx}
-			additionalAttrs, err := stage.outputs.GetDetailedAttrs(in)
+			results, err := stage.outputMapper.Apply(in)
 			if err != nil {
 				return false, err
 			}
-			for name, attr := range additionalAttrs {
-				if attr.isNew {
-					if strings.HasPrefix(name, "pipeline.") {
-						attrName := name[9:]
-						if ctx.pipeineOutput == nil {
-							ctx.pipeineOutput = make(map[string]*data.Attribute)
-						}
-						mdAttr := ctx.pipeline.def.metadata.Output[attrName]
-						if mdAttr != nil {
-							ctx.pipeineOutput[attrName], err = data.NewAttribute(attrName, mdAttr.Type(), attr.Value())
-							if err != nil {
-								return false, err
-							}
-						} else {
-							return false, errors.New("unknown pipeline output: " + attrName)
-						}
-						//get the pipeline metadata
+
+			outputMd := ctx.pipeline.def.metadata.Output
+			for name, value := range results {
+				if strings.HasPrefix(name, "pipeline.") {
+					attrName := name[9:]
+					if ctx.pipelineOutput == nil {
+						ctx.pipelineOutput = make(map[string]interface{})
 					}
+					mdAttr := outputMd[attrName]
+					if mdAttr != nil {
+						ctx.pipelineOutput[attrName], err = coerce.ToType(value, mdAttr.Type())
+						if err != nil {
+							return false, err
+						}
+					} else {
+						return false, errors.New("unknown pipeline output: " + attrName)
+					}
+					//			//get the pipeline metadata
 				} else {
-					currentAttrs[name] = attr.Attribute
+					currentAttrs[name] = value
 				}
 			}
 		}
@@ -204,7 +209,7 @@ func Resume(ctx *ExecutionContext) error {
 	}
 
 	if ctx.status == ExecStatusCompleted && ctx.pipeline.outChannel != nil {
-		ctx.pipeline.outChannel.Publish(ctx.pipeineOutput)
+		ctx.pipeline.outChannel.Publish(ctx.pipelineOutput)
 	}
 
 	return nil

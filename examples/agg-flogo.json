@@ -19,6 +19,10 @@
           },
           "action": {
             "id": "simple_agg",
+            "input": {
+              "input": "=$.pathParams.val"
+            },
+
             "mappings": {
               "input": [
                 {

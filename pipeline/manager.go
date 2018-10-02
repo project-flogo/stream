@@ -6,34 +6,35 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/project-flogo/core/data"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"sync"
 
-	"github.com/flogo-oss/core/app/resource"
-	"github.com/flogo-oss/core/logger"
-	"github.com/flogo-oss/core/util"
-	"github.com/flogo-oss/flow/definition"
+	"github.com/project-flogo/core/logger"
+	"github.com/project-flogo/core/util"
+	"github.com/project-flogo/flow/definition"
 )
 
 const (
-	uriSchemeFile    = "file://"
-	uriSchemeHttp    = "http://"
-	uriSchemeRes     = "res://"
-	RESTYPE_PIPELINE = "pipeline"
+	uriSchemeFile = "file://"
+	uriSchemeHttp = "http://"
 )
 
-var defaultManager *Manager
-
-func GetManager() *Manager {
-	return defaultManager
-}
+//var defaultManager *Manager
+//
+//func GetManager() *Manager {
+//	return defaultManager
+//}
 
 type Manager struct {
 	pipelines map[string]*Definition
 
 	pipelineProvider *BasicRemotePipelineProvider
+
+	mapperFactory data.MapperFactory
+	resolver      data.CompositeResolver
 
 	//todo switch to cache
 	rfMu            sync.Mutex // protects the flow maps
@@ -49,45 +50,7 @@ func NewManager() *Manager {
 	return manager
 }
 
-func (m *Manager) LoadResource(config *resource.Config) error {
-
-	var pipelineCfgBytes []byte
-
-	if config.Compressed {
-		decodedBytes, err := decodeAndUnzip(string(config.Data))
-		if err != nil {
-			return fmt.Errorf("error decoding compressed resource with id '%s', %s", config.ID, err.Error())
-		}
-
-		pipelineCfgBytes = decodedBytes
-	} else {
-		pipelineCfgBytes = config.Data
-	}
-
-	var defConfig *DefinitionConfig
-	err := json.Unmarshal(pipelineCfgBytes, &defConfig)
-	if err != nil {
-		return fmt.Errorf("error unmarshalling pipeline resource with id '%s', %s", config.ID, err.Error())
-	}
-
-	pDef, err := NewDefinition(defConfig)
-	if err != nil {
-		return err
-	}
-
-	m.pipelines[config.ID] = pDef
-	return nil
-}
-
-func (m *Manager) GetResource(id string) interface{} {
-	return m.pipelines[id]
-}
-
 func (m *Manager) GetPipeline(uri string) (*Definition, error) {
-
-	if strings.HasPrefix(uri, uriSchemeRes) {
-		return m.pipelines[uri[6:]], nil
-	}
 
 	m.rfMu.Lock()
 	defer m.rfMu.Unlock()
@@ -105,7 +68,7 @@ func (m *Manager) GetPipeline(uri string) (*Definition, error) {
 			return nil, err
 		}
 
-		pDef, err = NewDefinition(pConfig)
+		pDef, err = NewDefinition(pConfig, m.mapperFactory, m.resolver)
 		if err != nil {
 			return nil, err
 		}
@@ -147,7 +110,7 @@ func (*BasicRemotePipelineProvider) GetPipeline(pipelineURI string) (*Definition
 
 		}
 
-	} else {
+	} else if strings.HasPrefix(pipelineURI, uriSchemeHttp) {
 		// URI
 		req, err := http.NewRequest("GET", pipelineURI, nil)
 		client := &http.Client{}
@@ -187,6 +150,8 @@ func (*BasicRemotePipelineProvider) GetPipeline(pipelineURI string) (*Definition
 		} else {
 			pDefBytes = body
 		}
+	} else {
+		return nil, fmt.Errorf("unsupport uri %s", pipelineURI)
 	}
 
 	var pDef *DefinitionConfig

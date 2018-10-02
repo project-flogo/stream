@@ -2,28 +2,29 @@ package pipeline
 
 import (
 	"errors"
+	"github.com/project-flogo/core/data/metadata"
 
-	"github.com/flogo-oss/core/activity"
-	"github.com/flogo-oss/core/data"
-	"github.com/flogo-oss/core/logger"
+	"github.com/project-flogo/core/activity"
+	"github.com/project-flogo/core/data"
+	"github.com/project-flogo/core/data/typed"
+	"github.com/project-flogo/core/logger"
 )
 
 var (
 	exists = struct{}{}
 )
 
-// switch to this mapper style in future?
-type MapperAlt interface {
-	Apply(inputScope data.Scope) (map[string]*data.Attribute, error)
-}
-
 type Stage struct {
-	act      activity.Activity
-	settings map[string]*data.Attribute
-	inputs   *InputValues
-	outputs  *InputValues
+	act   activity.Activity
+	actMd *metadata.Metadata
 
-	outputAttrs map[string]*data.Attribute
+	settings map[string]typed.Value
+	//inputs   *InputValues
+	//outputs  *InputValues
+
+	outputAttrs  map[string]*data.Attribute
+	inputMapper  data.Mapper
+	outputMapper data.Mapper
 }
 
 type StageConfig struct {
@@ -32,7 +33,7 @@ type StageConfig struct {
 	Promotions []string `json:"addToPipeline,omitempty"`
 }
 
-func NewStage(config *StageConfig) (*Stage, error) {
+func NewStage(config *StageConfig, mf data.MapperFactory, resolver data.CompositeResolver) (*Stage, error) {
 
 	if config.Ref == "" {
 		return nil, errors.New("Activity not specified for Stage")
@@ -43,10 +44,12 @@ func NewStage(config *StageConfig) (*Stage, error) {
 		return nil, errors.New("unsupported Activity:" + config.Ref)
 	}
 
+	//md := activity.GetMetadata(config.Ref)
+
 	f := activity.GetFactory(config.Ref)
 
 	if f != nil {
-		pa, err := f(config.Config)
+		pa, err := f(config.Config.Settings)
 		if err == nil {
 			act = pa
 		}
@@ -55,16 +58,18 @@ func NewStage(config *StageConfig) (*Stage, error) {
 	stage := &Stage{}
 	stage.act = act
 
-	if len(config.Settings) > 0 {
-		stage.settings = make(map[string]*data.Attribute, len(config.Settings))
+	settingsMd := act.Metadata().Settings
+
+	if len(config.Settings) > 0 && settingsMd != nil {
+		stage.settings = make(map[string]typed.Value, len(config.Settings))
 
 		for name, value := range config.Settings {
 
-			attr := act.Metadata().Settings[name]
+			attr := settingsMd[name]
 
 			if attr != nil {
 				//todo handle error
-				stage.settings[name], _ = data.NewAttribute(name, attr.Type(), resolveSettingValue(name, value))
+				stage.settings[name] = typed.NewValue(attr.Type(), resolveSettingValue(resolver, name, value))
 			}
 		}
 	}
@@ -73,52 +78,35 @@ func NewStage(config *StageConfig) (*Stage, error) {
 
 	if len(inputAttrs) > 0 {
 
-		var err error
-		stage.inputs, err = NewInputValues(act.Metadata().Input, GetDataResolver(), inputAttrs, false)
-
+		inputMapper, err := mf.NewMapper(inputAttrs)
 		if err != nil {
 			return nil, err
 		}
+
+		stage.inputMapper = inputMapper
 	}
 
 	outputAttrs := config.OutputAttrs
 
 	if len(outputAttrs) > 0 {
 
-		var err error
-		stage.outputs, err = NewInputValues(act.Metadata().Output, GetDataResolver(), outputAttrs, true)
-
+		outputMapper, err := mf.NewMapper(outputAttrs)
 		if err != nil {
 			return nil, err
 		}
-	}
 
-	//outputAttrs := config.OutputAttrs
-	//
-	//if len(outputAttrs) > 0 {
-	//
-	//	stage.outputAttrs = make(map[string]*data.Attribute, len(outputAttrs))
-	//
-	//	for name, value := range outputAttrs {
-	//
-	//		attr := act.Metadata().Output[name]
-	//
-	//		if attr != nil {
-	//			//todo handle error
-	//			stage.outputAttrs[name], _ = data.NewAttribute(name, attr.Type(), value)
-	//		}
-	//	}
-	//}
+		stage.outputMapper = outputMapper
+	}
 
 	return stage, nil
 }
 
-func resolveSettingValue(setting string, value interface{}) interface{} {
+func resolveSettingValue(resolver data.CompositeResolver, setting string, value interface{}) interface{} {
 
 	strVal, ok := value.(string)
 
 	if ok && len(strVal) > 0 && strVal[0] == '$' {
-		v, err := data.GetBasicResolver().Resolve(strVal, nil)
+		v, err := resolver.Resolve(strVal, nil)
 
 		if err == nil {
 

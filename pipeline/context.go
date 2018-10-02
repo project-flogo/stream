@@ -1,13 +1,16 @@
 package pipeline
 
 import (
-	"github.com/flogo-oss/core/data/typed"
+	"fmt"
+	"github.com/project-flogo/core/data/resolvers"
+	"runtime/debug"
 	"time"
 
-	"github.com/flogo-oss/core/activity"
-	"github.com/flogo-oss/core/data"
-	"github.com/flogo-oss/core/logger"
-	"github.com/flogo-oss/stream/pipeline/support"
+	"github.com/project-flogo/core/activity"
+	"github.com/project-flogo/core/data"
+	"github.com/project-flogo/core/data/metadata"
+	"github.com/project-flogo/core/logger"
+	"github.com/project-flogo/stream/pipeline/support"
 )
 
 type Status int
@@ -57,11 +60,11 @@ type ExecutionContext struct {
 	stageId int
 	status  ExecutionStatus
 
-	pipelineInput map[string]*data.Attribute
-	pipeineOutput map[string]*data.Attribute
+	pipelineInput  map[string]interface{}
+	pipelineOutput map[string]interface{}
 
-	currentInput  map[string]*data.Attribute
-	currentOutput map[string]*data.Attribute
+	currentInput  map[string]interface{}
+	currentOutput map[string]interface{}
 
 	updateTimers uint8
 }
@@ -75,7 +78,7 @@ func (eCtx *ExecutionContext) currentStage() *Stage {
 	return eCtx.pipeline.def.stages[eCtx.stageId]
 }
 
-func (eCtx *ExecutionContext) pipelineScope() data.MutableScope {
+func (eCtx *ExecutionContext) pipelineScope() data.Scope {
 	//todo just maybe store ref to pipeline state in ctx
 	return eCtx.pipeline.sm.GetState(eCtx.discriminator).GetScope()
 }
@@ -91,15 +94,15 @@ func (eCtx *ExecutionContext) Name() string {
 	return eCtx.pipeline.def.name
 }
 
-func (eCtx *ExecutionContext) IOMetadata() *data.IOMetadata {
+func (eCtx *ExecutionContext) IOMetadata() *metadata.IOMetadata {
 	return eCtx.pipeline.def.metadata
 }
 
-func (eCtx *ExecutionContext) Reply(replyData map[string]typed.Value, err error) {
+func (eCtx *ExecutionContext) Reply(replyData map[string]interface{}, err error) {
 	//ignore - not supported by pipeline
 }
 
-func (eCtx *ExecutionContext) Return(returnData map[string]typed.Value, err error) {
+func (eCtx *ExecutionContext) Return(returnData map[string]interface{}, err error) {
 	//ignore - not supported by pipeline
 }
 
@@ -107,8 +110,8 @@ func (eCtx *ExecutionContext) WorkingData() data.Scope {
 	return eCtx.pipeline.sm.GetState(eCtx.discriminator).GetScope()
 }
 
-func (eCtx *ExecutionContext) GetResolver() data.Resolver {
-	return data.GetBasicResolver()
+func (eCtx *ExecutionContext) GetResolver() data.CompositeResolver {
+	return resolvers.GetBasicResolver()
 }
 
 func (eCtx *ExecutionContext) GetDetails() data.StringsMap {
@@ -134,12 +137,13 @@ func (eCtx *ExecutionContext) GetSetting(setting string) (value interface{}, exi
 
 func (eCtx *ExecutionContext) GetInput(name string) interface{} {
 
-	attr, found := eCtx.currentInput[name]
+	value, found := eCtx.currentInput[name]
 	if found {
-		return attr.Value()
+		return value
 	} else {
 		stage := eCtx.currentStage()
-		attr, found := stage.act.Metadata().Input[name]
+
+		attr, found := stage.actMd.Input[name]
 		if found {
 			return attr.Value()
 		}
@@ -149,9 +153,9 @@ func (eCtx *ExecutionContext) GetInput(name string) interface{} {
 }
 
 func (eCtx *ExecutionContext) GetOutput(name string) interface{} {
-	attr, found := eCtx.currentOutput[name]
+	value, found := eCtx.currentOutput[name]
 	if found {
-		return attr.Value()
+		return value
 	} else {
 		stage := eCtx.currentStage()
 		attr, found := stage.outputAttrs[name]
@@ -166,18 +170,23 @@ func (eCtx *ExecutionContext) GetOutput(name string) interface{} {
 func (eCtx *ExecutionContext) SetOutput(name string, value interface{}) {
 
 	if eCtx.currentOutput == nil {
-		eCtx.currentOutput = make(map[string]*data.Attribute)
+		eCtx.currentOutput = make(map[string]interface{})
 	}
 
-	attr, found := eCtx.currentOutput[name]
-	if found {
-		attr.SetValue(value)
-	} else {
-		//get type from the stages output or existing metadata
-		//todo
-		attr, _ = data.NewAttribute(name, data.TypeAny, value)
-		eCtx.currentOutput[name] = attr
-	}
+	//todo coerce to type based on metadata
+
+	eCtx.currentOutput[name] = value
+
+	//attr, found := eCtx.currentOutput[name]
+	//if found {
+	//
+	//	attr.SetValue(value)
+	//} else {
+	//	//get type from the stages output or existing metadata
+	//	//todo
+	//	attr, _ = data.NewAttribute(name, data.TypeAny, value)
+	//	eCtx.currentOutput[name] = attr
+	//}
 }
 
 func (eCtx *ExecutionContext) GetSharedTempData() map[string]interface{} {
@@ -198,10 +207,12 @@ func (eCtx *ExecutionContext) TaskName() string {
 	return ""
 }
 
-// DEPRECATED
-func (eCtx *ExecutionContext) FlowDetails() activity.FlowDetails {
-	//ignore
-	return nil
+func (eCtx *ExecutionContext) GetInputObject(object interface{}, converter activity.InputConverter) {
+	panic("implement me")
+}
+
+func (eCtx *ExecutionContext) SetOutputObject(object interface{}, converter activity.OutputConverter) {
+	panic("implement me")
 }
 
 /////////////////////////////////////////
@@ -290,21 +301,25 @@ func (eCtx *ExecutionContext) CreateTimer(interval time.Duration, callback suppo
 			for range holder.ticker.C {
 
 				newCtx := holder.GetLastExecCtx()
-				//newCtx := &ExecutionContext{discriminator: discriminator, pipeline: inst}
-				//newCtx.stageId = stageId
-				//newCtx.status = ExecStatusActive
 
 				//todo - what should we do if no samples have come in a window,  ignore for now
 
 				if newCtx != nil {
-					logger.Debugf("Repeating timer fired for activity: %s", newCtx.currentStage().act.Metadata().ID)
 
-					resume := callback(newCtx)
+					if logger.DebugEnabled() {
+						ref := activity.GetRef(newCtx.currentStage().act)
+						logger.Debugf("Repeating timer fired for activity: %s", ref)
+					}
+
+					resume := invokeCallback(callback, newCtx)
+					//resume := callback(newCtx)
 					if resume {
 						Resume(newCtx)
 					}
 				} else {
-					logger.Debugf("Repeating timer fired for activity: %s, but not running since no samples in window", "activity")
+					if logger.DebugEnabled() {
+						logger.Debugf("Repeating timer fired for activity: %s, but not running since no samples in window", "activity")
+					}
 				}
 			}
 		}()
@@ -326,9 +341,13 @@ func (eCtx *ExecutionContext) CreateTimer(interval time.Duration, callback suppo
 			//newCtx.stageId = stageId
 			//newCtx.status = ExecStatusActive
 
-			logger.Debugf("Timeout timer fired for activity: %s", newCtx.currentStage().act.Metadata().ID)
+			if logger.DebugEnabled() {
+				ref := activity.GetRef(newCtx.currentStage().act)
+				logger.Debugf("Timeout timer fired for activity: %s", ref)
+			}
 
-			resume := callback(newCtx)
+			resume := invokeCallback(callback, newCtx)
+			//resume := callback(newCtx)
 			if resume {
 				Resume(newCtx)
 			}
@@ -336,4 +355,23 @@ func (eCtx *ExecutionContext) CreateTimer(interval time.Duration, callback suppo
 	}
 
 	return nil
+}
+
+func invokeCallback(callback support.TimerCallback, ctx activity.Context) (resume bool) {
+
+	defer func() {
+		if r := recover(); r != nil {
+
+			err := fmt.Errorf("unhandled error executing callback for stage '%s' : %v", ctx.Name(), r)
+			logger.Error(err)
+
+			// todo: useful for debugging
+			logger.Debugf("StackTrace: %s", debug.Stack())
+
+			resume = false
+		}
+	}()
+
+	resume = callback(ctx)
+	return resume
 }

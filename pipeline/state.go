@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/flogo-oss/core/activity"
-	"github.com/flogo-oss/core/data"
+	"github.com/project-flogo/core/activity"
+	"github.com/project-flogo/core/data"
 )
 
 type StateManager interface {
@@ -14,7 +14,7 @@ type StateManager interface {
 }
 
 type State interface {
-	GetScope() data.MutableScope
+	GetScope() data.Scope
 
 	//GetSharedTempData gets the activity instance specific shared data
 	GetSharedData(act activity.Activity) map[string]interface{}
@@ -87,7 +87,7 @@ func (p *multiStateManager) GetState(id string) State {
 }
 
 type simpleState struct {
-	scope      data.MutableScope
+	scope      data.Scope
 	sharedData map[activity.Activity]map[string]interface{}
 
 	//todo optimize: share tickers closer to instance level (there could even be 1 per difinition, just multiple callbacks)
@@ -96,7 +96,7 @@ type simpleState struct {
 	timers  map[activity.Activity]*TimerHolder
 }
 
-func (p *simpleState) GetScope() data.MutableScope {
+func (p *simpleState) GetScope() data.Scope {
 	return p.scope
 }
 

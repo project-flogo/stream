@@ -6,11 +6,11 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/flogo-oss/core/action"
-	"github.com/flogo-oss/core/app/resource"
-	"github.com/flogo-oss/core/data"
-	"github.com/flogo-oss/core/engine/channels"
-	_ "github.com/flogo-oss/flow/test"
+	"github.com/project-flogo/core/action"
+	"github.com/project-flogo/core/app/resource"
+	"github.com/project-flogo/core/data"
+	"github.com/project-flogo/core/engine/channels"
+	_ "github.com/project-flogo/flow/test"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,7 +33,7 @@ func getTestMetadata(t *testing.T) *action.Metadata {
 
 const testConfig string = `{
   "id": "flogo-stream",
-  "ref": "github.com/flogo-oss/stream",
+  "ref": "github.com/project-flogo/stream",
   "settings": {
     "pipelineURI": "res://pipeline:test",
     "outputChannel": "testChan"
