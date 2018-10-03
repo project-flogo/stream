@@ -129,7 +129,7 @@ func (eCtx *ExecutionContext) GetSetting(setting string) (value interface{}, exi
 	stage := eCtx.currentStage()
 	attr, found := stage.settings[setting]
 	if found {
-		return attr.Value(), true
+		return attr, true
 	}
 
 	return nil, false
@@ -143,7 +143,7 @@ func (eCtx *ExecutionContext) GetInput(name string) interface{} {
 	} else {
 		stage := eCtx.currentStage()
 
-		attr, found := stage.actMd.Input[name]
+		attr, found := stage.act.Metadata().Input[name]
 		if found {
 			return attr.Value()
 		}
@@ -160,7 +160,7 @@ func (eCtx *ExecutionContext) GetOutput(name string) interface{} {
 		stage := eCtx.currentStage()
 		attr, found := stage.outputAttrs[name]
 		if found {
-			return attr.Value()
+			return attr
 		}
 	}
 
@@ -207,12 +207,33 @@ func (eCtx *ExecutionContext) TaskName() string {
 	return ""
 }
 
-func (eCtx *ExecutionContext) GetInputObject(object interface{}, converter activity.InputConverter) {
-	panic("implement me")
+func (eCtx *ExecutionContext) GetInputObject(object interface{}, converter activity.InputConverter) error {
+
+	if converter != nil {
+		err := converter(eCtx.currentInput, object)
+		if err != nil {
+			return err
+		}
+	} else {
+		metadata.MapToStruct(eCtx.currentInput, object, false)
+	}
+
+	return nil
 }
 
-func (eCtx *ExecutionContext) SetOutputObject(object interface{}, converter activity.OutputConverter) {
-	panic("implement me")
+func (eCtx *ExecutionContext) SetOutputObject(object interface{}, converter activity.OutputConverter) error {
+
+	if converter != nil {
+		var err error
+		eCtx.currentOutput, err = converter(object)
+		if err != nil {
+			return err
+		}
+	} else {
+		eCtx.currentOutput = metadata.StructToMap(object)
+	}
+
+	return nil
 }
 
 /////////////////////////////////////////

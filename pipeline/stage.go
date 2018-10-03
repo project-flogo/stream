@@ -2,11 +2,8 @@ package pipeline
 
 import (
 	"errors"
-	"github.com/project-flogo/core/data/metadata"
-
 	"github.com/project-flogo/core/activity"
 	"github.com/project-flogo/core/data"
-	"github.com/project-flogo/core/data/typed"
 	"github.com/project-flogo/core/logger"
 )
 
@@ -16,13 +13,11 @@ var (
 
 type Stage struct {
 	act   activity.Activity
-	actMd *metadata.Metadata
 
-	settings map[string]typed.Value
-	//inputs   *InputValues
-	//outputs  *InputValues
+	settings map[string]interface{}
 
-	outputAttrs  map[string]*data.Attribute
+	outputAttrs  map[string]interface{}
+
 	inputMapper  data.Mapper
 	outputMapper data.Mapper
 }
@@ -61,7 +56,7 @@ func NewStage(config *StageConfig, mf data.MapperFactory, resolver data.Composit
 	settingsMd := act.Metadata().Settings
 
 	if len(config.Settings) > 0 && settingsMd != nil {
-		stage.settings = make(map[string]typed.Value, len(config.Settings))
+		stage.settings = make(map[string]interface{}, len(config.Settings))
 
 		for name, value := range config.Settings {
 
@@ -69,7 +64,7 @@ func NewStage(config *StageConfig, mf data.MapperFactory, resolver data.Composit
 
 			if attr != nil {
 				//todo handle error
-				stage.settings[name] = typed.NewValue(attr.Type(), resolveSettingValue(resolver, name, value))
+				stage.settings[name] = resolveSettingValue(resolver, name, value)
 			}
 		}
 	}
