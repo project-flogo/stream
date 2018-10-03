@@ -4,14 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/project-flogo/fscript"
 	"strings"
 
 	"github.com/project-flogo/core/action"
 	"github.com/project-flogo/core/app/resource"
 	"github.com/project-flogo/core/data/coerce"
-	"github.com/project-flogo/core/data/exprs"
-	"github.com/project-flogo/core/data/mappers"
 	"github.com/project-flogo/core/data/metadata"
 	"github.com/project-flogo/core/engine/channels"
 	"github.com/project-flogo/core/logger"
@@ -32,17 +29,18 @@ type Settings struct {
 }
 
 type ActionFactory struct {
+	resManager *resource.Manager
 }
 
-func (f *ActionFactory) Init() error {
+func (f *ActionFactory) Initialize(ctx action.InitContext) error {
+
+	f.resManager = ctx.ResourceManager()
 
 	if manager != nil {
 		return nil
 	}
 
-	scriptExprFactory := fscript.NewExprFactory(pipeline.GetDataResolver())
-	exprFactory := exprs.NewExprFactory(pipeline.GetDataResolver(), scriptExprFactory)
-	mapperFactory := mappers.NewExprMapperFactory(exprFactory)
+	mapperFactory := ctx.NewMapperFactory(pipeline.GetDataResolver())
 
 	manager = pipeline.NewManager()
 	resource.RegisterLoader(pipeline.RESTYPE, pipeline.NewResourceLoader(mapperFactory, pipeline.GetDataResolver()))
@@ -50,7 +48,7 @@ func (f *ActionFactory) Init() error {
 	return nil
 }
 
-func (f *ActionFactory) New(config *action.Config, resManager *resource.Manager) (action.Action, error) {
+func (f *ActionFactory) New(config *action.Config) (action.Action, error) {
 
 	settings := &Settings{}
 	err := metadata.MapToStruct(config.Settings, settings, true)
@@ -66,7 +64,7 @@ func (f *ActionFactory) New(config *action.Config, resManager *resource.Manager)
 
 	if strings.HasPrefix(settings.PipelineURI, resource.UriScheme) {
 
-		res := resManager.GetResource(settings.PipelineURI)
+		res := f.resManager.GetResource(settings.PipelineURI)
 
 		if res != nil {
 			def, ok := res.Object().(*pipeline.Definition)

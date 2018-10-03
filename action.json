@@ -1,11 +1,11 @@
 {
   "name": "stream",
   "type": "flogo:action",
-  "ref": "github.com/flogo-oss/stream/action",
+  "ref": "github.com/project-flogo/stream/action",
   "version": "0.0.1",
   "title": "Flogo Stream",
   "description": "Simple Stream Action",
-  "homepage": "https://github.com/flogo-oss/stream/tree/master",
+  "homepage": "https://github.com/project-flogo/stream/tree/master",
   "async": true,
   "settings": [
     {

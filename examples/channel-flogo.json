@@ -62,7 +62,7 @@
   "actions": [
     {
       "id": "simple_filter",
-      "ref": "github.com/flogo-oss/stream",
+      "ref": "github.com/project-flogo/stream",
       "settings": {
         "pipelineURI": "res://pipeline:simple_filter",
         "outputChannel": "test"
@@ -70,7 +70,7 @@
     },
     {
       "id": "simple_report",
-      "ref": "github.com/flogo-oss/stream",
+      "ref": "github.com/project-flogo/stream",
       "settings": {
         "pipelineURI": "res://pipeline:simple_report"
       }
