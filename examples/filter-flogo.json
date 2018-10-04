@@ -58,7 +58,8 @@
           {
             "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/filter",
             "settings": {
-              "type": "non-zero"
+              "type": "non-zero",
+              "proceedOnlyOnEmit": true
             },
             "input": {
               "value": "=$.input"
