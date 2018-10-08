@@ -2,14 +2,14 @@ package pipeline
 
 import (
 	"fmt"
-	"github.com/project-flogo/core/data/resolvers"
 	"runtime/debug"
 	"time"
 
+	"github.com/project-flogo/core/data/resolve"
 	"github.com/project-flogo/core/activity"
 	"github.com/project-flogo/core/data"
 	"github.com/project-flogo/core/data/metadata"
-	"github.com/project-flogo/core/logger"
+	"github.com/project-flogo/core/support/logger"
 	"github.com/project-flogo/stream/pipeline/support"
 )
 
@@ -110,8 +110,8 @@ func (eCtx *ExecutionContext) WorkingData() data.Scope {
 	return eCtx.pipeline.sm.GetState(eCtx.discriminator).GetScope()
 }
 
-func (eCtx *ExecutionContext) GetResolver() data.CompositeResolver {
-	return resolvers.GetBasicResolver()
+func (eCtx *ExecutionContext) GetResolver() resolve.CompositeResolver {
+	return resolve.GetBasicResolver()
 }
 
 func (eCtx *ExecutionContext) GetDetails() data.StringsMap {

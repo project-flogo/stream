@@ -3,8 +3,9 @@ package pipeline
 import (
 	"errors"
 	"github.com/project-flogo/core/activity"
-	"github.com/project-flogo/core/data"
-	"github.com/project-flogo/core/logger"
+	"github.com/project-flogo/core/data/mapper"
+	"github.com/project-flogo/core/data/resolve"
+	"github.com/project-flogo/core/support/logger"
 )
 
 var (
@@ -12,14 +13,14 @@ var (
 )
 
 type Stage struct {
-	act   activity.Activity
+	act activity.Activity
 
 	settings map[string]interface{}
 
-	outputAttrs  map[string]interface{}
+	outputAttrs map[string]interface{}
 
-	inputMapper  data.Mapper
-	outputMapper data.Mapper
+	inputMapper  mapper.Mapper
+	outputMapper mapper.Mapper
 }
 
 type StageConfig struct {
@@ -28,7 +29,7 @@ type StageConfig struct {
 	Promotions []string `json:"addToPipeline,omitempty"`
 }
 
-func NewStage(config *StageConfig, mf data.MapperFactory, resolver data.CompositeResolver) (*Stage, error) {
+func NewStage(config *StageConfig, mf mapper.Factory, resolver resolve.CompositeResolver) (*Stage, error) {
 
 	if config.Ref == "" {
 		return nil, errors.New("Activity not specified for Stage")
@@ -69,7 +70,7 @@ func NewStage(config *StageConfig, mf data.MapperFactory, resolver data.Composit
 		}
 	}
 
-	inputAttrs := config.InputAttrs
+	inputAttrs := config.Input
 
 	if len(inputAttrs) > 0 {
 
@@ -81,7 +82,7 @@ func NewStage(config *StageConfig, mf data.MapperFactory, resolver data.Composit
 		stage.inputMapper = inputMapper
 	}
 
-	outputAttrs := config.OutputAttrs
+	outputAttrs := config.Output
 
 	if len(outputAttrs) > 0 {
 
@@ -96,7 +97,7 @@ func NewStage(config *StageConfig, mf data.MapperFactory, resolver data.Composit
 	return stage, nil
 }
 
-func resolveSettingValue(resolver data.CompositeResolver, setting string, value interface{}) interface{} {
+func resolveSettingValue(resolver resolve.CompositeResolver, setting string, value interface{}) interface{} {
 
 	strVal, ok := value.(string)
 

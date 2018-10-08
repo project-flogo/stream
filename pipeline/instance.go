@@ -9,7 +9,7 @@ import (
 
 	"github.com/project-flogo/core/activity"
 	"github.com/project-flogo/core/engine/channels"
-	"github.com/project-flogo/core/logger"
+	"github.com/project-flogo/core/support/logger"
 )
 
 type Instance struct {

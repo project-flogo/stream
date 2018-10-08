@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/project-flogo/core/data"
-	"github.com/project-flogo/core/logger"
+	"github.com/project-flogo/core/support/logger"
 )
 
 type MultiScope interface {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/project-flogo/core/data/mapper"
 	"strings"
 
 	"github.com/project-flogo/core/action"
@@ -11,7 +12,7 @@ import (
 	"github.com/project-flogo/core/data/coerce"
 	"github.com/project-flogo/core/data/metadata"
 	"github.com/project-flogo/core/engine/channels"
-	"github.com/project-flogo/core/logger"
+	"github.com/project-flogo/core/support/logger"
 	"github.com/project-flogo/stream/pipeline"
 )
 
@@ -20,7 +21,7 @@ func init() {
 }
 
 var manager *pipeline.Manager
-var actionMd = metadata.New(&Settings{})
+var actionMd = action.ToMetadata(&Settings{})
 
 type Settings struct {
 	PipelineURI   string `md:"pipelineURI,required"`
@@ -40,7 +41,7 @@ func (f *ActionFactory) Initialize(ctx action.InitContext) error {
 		return nil
 	}
 
-	mapperFactory := ctx.NewMapperFactory(pipeline.GetDataResolver())
+	mapperFactory := mapper.NewFactory(pipeline.GetDataResolver())
 
 	manager = pipeline.NewManager()
 	resource.RegisterLoader(pipeline.RESTYPE, pipeline.NewResourceLoader(mapperFactory, pipeline.GetDataResolver()))
@@ -119,7 +120,7 @@ func (s *StreamAction) Info() *action.Info {
 	panic("implement me")
 }
 
-func (s *StreamAction) Metadata() *metadata.Metadata {
+func (s *StreamAction) Metadata() *action.Metadata {
 	return actionMd
 }
 

@@ -2,28 +2,28 @@ package pipeline
 
 import (
 	"fmt"
-	"github.com/project-flogo/core/data/resolvers"
 
+	"github.com/project-flogo/core/data/resolve"
 	"github.com/project-flogo/core/data"
 )
 
-var resolver = resolvers.NewCompositeResolver(map[string]data.Resolver{
-	".":        &resolvers.ScopeResolver{},
-	"env":      &resolvers.EnvResolver{},
-	"property": &resolvers.PropertyResolver{},
+var pipelineRes = resolve.NewCompositeResolver(map[string]resolve.Resolver{
+	".":        &resolve.ScopeResolver{},
+	"env":      &resolve.EnvResolver{},
+	"property": &resolve.PropertyResolver{},
 	"input":    &InputResolver{},
 	"pipeline": &PipelineResolver{}})
 
-func GetDataResolver() data.CompositeResolver {
-	return resolver
+func GetDataResolver() resolve.CompositeResolver {
+	return pipelineRes
 }
 
-var resolverInfo = data.NewResolverInfo(false, false)
+var resolverInfo = resolve.NewResolverInfo(false, false)
 
 type PipelineResolver struct {
 }
 
-func (r *PipelineResolver) GetResolverInfo() *data.ResolverInfo {
+func (r *PipelineResolver) GetResolverInfo() *resolve.ResolverInfo {
 	return resolverInfo
 }
 
@@ -42,12 +42,12 @@ func (r *PipelineResolver) Resolve(scope data.Scope, itemName, valueName string)
 	return value, nil
 }
 
-var actResolverInfo = data.NewResolverInfo(false, true)
+var actResolverInfo = resolve.NewResolverInfo(false, true)
 
 type InputResolver struct {
 }
 
-func (r *InputResolver) GetResolverInfo() *data.ResolverInfo {
+func (r *InputResolver) GetResolverInfo() *resolve.ResolverInfo {
 	return resolverInfo
 }
 

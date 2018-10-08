@@ -1,8 +1,9 @@
 package pipeline
 
 import (
-	"github.com/project-flogo/core/data"
+	"github.com/project-flogo/core/data/mapper"
 	"github.com/project-flogo/core/data/metadata"
+	"github.com/project-flogo/core/data/resolve"
 )
 
 type DefinitionConfig struct {
@@ -11,7 +12,7 @@ type DefinitionConfig struct {
 	Stages   []*StageConfig       `json:"stages"`
 }
 
-func NewDefinition(config *DefinitionConfig, mf data.MapperFactory, resolver data.CompositeResolver) (*Definition, error) {
+func NewDefinition(config *DefinitionConfig, mf mapper.Factory, resolver resolve.CompositeResolver) (*Definition, error) {
 
 	def := &Definition{name: config.Name, metadata: config.Metadata}
 

@@ -6,14 +6,15 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/project-flogo/core/data"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"sync"
 
-	"github.com/project-flogo/core/logger"
-	"github.com/project-flogo/core/util"
+	"github.com/project-flogo/core/data/mapper"
+	"github.com/project-flogo/core/data/resolve"
+	"github.com/project-flogo/core/support"
+	"github.com/project-flogo/core/support/logger"
 	"github.com/project-flogo/flow/definition"
 )
 
@@ -33,8 +34,8 @@ type Manager struct {
 
 	pipelineProvider *BasicRemotePipelineProvider
 
-	mapperFactory data.MapperFactory
-	resolver      data.CompositeResolver
+	mapperFactory mapper.Factory
+	resolver      resolve.CompositeResolver
 
 	//todo switch to cache
 	rfMu            sync.Mutex // protects the flow maps
@@ -90,7 +91,7 @@ func (*BasicRemotePipelineProvider) GetPipeline(pipelineURI string) (*Definition
 	if strings.HasPrefix(pipelineURI, uriSchemeFile) {
 		// File URI
 		logger.Infof("Loading Local Pipeline: %s\n", pipelineURI)
-		flowFilePath, _ := util.URLStringToFilePath(pipelineURI)
+		flowFilePath, _ := support.URLStringToFilePath(pipelineURI)
 
 		readBytes, err := ioutil.ReadFile(flowFilePath)
 		if err != nil {

@@ -5,20 +5,21 @@ import (
 	"fmt"
 
 	"github.com/project-flogo/core/app/resource"
-	"github.com/project-flogo/core/data"
+	"github.com/project-flogo/core/data/mapper"
+	"github.com/project-flogo/core/data/resolve"
 )
 
 const (
 	RESTYPE = "pipeline"
 )
 
-func NewResourceLoader(mapperFactory data.MapperFactory, resolver data.CompositeResolver) resource.Loader {
+func NewResourceLoader(mapperFactory mapper.Factory, resolver resolve.CompositeResolver) resource.Loader {
 	return &ResourceLoader{mapperFactory: mapperFactory, resolver: resolver}
 }
 
 type ResourceLoader struct {
-	mapperFactory data.MapperFactory
-	resolver      data.CompositeResolver
+	mapperFactory mapper.Factory
+	resolver      resolve.CompositeResolver
 }
 
 func (rl *ResourceLoader) LoadResource(config *resource.Config) (*resource.Resource, error) {
