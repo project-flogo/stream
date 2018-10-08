@@ -29,6 +29,20 @@ type StageConfig struct {
 	Promotions []string `json:"addToPipeline,omitempty"`
 }
 
+
+type initContextImpl struct {
+	settings map[string]interface{}
+	mFactory mapper.Factory
+}
+
+func (ctx *initContextImpl) Settings() map[string]interface{} {
+	return ctx.settings
+}
+
+func (ctx *initContextImpl) MapperFactory() mapper.Factory {
+	return ctx.mFactory
+}
+
 func NewStage(config *StageConfig, mf mapper.Factory, resolver resolve.CompositeResolver) (*Stage, error) {
 
 	if config.Ref == "" {
@@ -40,12 +54,11 @@ func NewStage(config *StageConfig, mf mapper.Factory, resolver resolve.Composite
 		return nil, errors.New("unsupported Activity:" + config.Ref)
 	}
 
-	//md := activity.GetMetadata(config.Ref)
-
 	f := activity.GetFactory(config.Ref)
 
 	if f != nil {
-		pa, err := f(config.Config.Settings)
+		initCtx := &initContextImpl{settings:config.Config.Settings, mFactory:mf}
+		pa, err := f(initCtx)
 		if err == nil {
 			act = pa
 		}

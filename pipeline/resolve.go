@@ -3,8 +3,8 @@ package pipeline
 import (
 	"fmt"
 
-	"github.com/project-flogo/core/data/resolve"
 	"github.com/project-flogo/core/data"
+	"github.com/project-flogo/core/data/resolve"
 )
 
 var pipelineRes = resolve.NewCompositeResolver(map[string]resolve.Resolver{

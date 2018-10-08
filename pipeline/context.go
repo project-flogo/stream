@@ -5,10 +5,10 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/project-flogo/core/data/resolve"
 	"github.com/project-flogo/core/activity"
 	"github.com/project-flogo/core/data"
 	"github.com/project-flogo/core/data/metadata"
+	"github.com/project-flogo/core/data/resolve"
 	"github.com/project-flogo/core/support/logger"
 	"github.com/project-flogo/stream/pipeline/support"
 )
