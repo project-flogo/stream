@@ -61,7 +61,7 @@ func New(ctx activity.InitContext) (activity.Activity, error) {
 		return nil, err
 	}
 
-	act := &Activity{settings:s, additionalSettings:additionalSettings}
+	act := &Activity{settings: s, additionalSettings: additionalSettings}
 
 	return act, nil
 }
