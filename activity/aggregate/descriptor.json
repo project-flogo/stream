@@ -1,0 +1,55 @@
+{
+  "name": "flogo-aggregate",
+  "type": "flogo:activity",
+  "version": "0.0.1",
+  "title": "Aggregate",
+  "description": "Simple Aggregate Activity",
+  "homepage": "https://github.com/project-flogo/stream/tree/master/activity/aggregate",
+  "settings": [
+    {
+      "name": "function",
+      "type": "string",
+      "required": true,
+      "allowed" : ["avg", "sum", "min", "max", "count", "accumulate"]
+    },
+    {
+      "name": "windowType",
+      "type": "string",
+      "required": true,
+      "allowed" : ["tumbling", "sliding", "timeTumbling", "timeSliding"]
+    },
+    {
+      "name": "windowSize",
+      "type": "integer",
+      "required": true
+    },
+    {
+      "name": "resolution",
+      "type": "integer"
+    },
+    {
+      "name": "proceedOnlyOnEmit",
+      "type": "boolean"
+    },
+    {
+      "name": "additionalSettings",
+      "type": "string"
+    }
+  ],
+  "input":[
+    {
+      "name": "value",
+      "type": "any"
+    }
+  ],
+  "output": [
+    {
+      "name": "result",
+      "type": "any"
+    },
+    {
+      "name": "report",
+      "type": "boolean"
+    }
+  ]
+}

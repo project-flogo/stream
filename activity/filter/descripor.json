@@ -1,0 +1,37 @@
+{
+  "name": "flogo-filter",
+  "type": "flogo:activity",
+  "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/filter",
+  "version": "0.0.1",
+  "title": "Filter",
+  "description": "Simple Filter Activity",
+  "homepage": "https://github.com/TIBCOSoftware/flogo-contrib/tree/master/activity/filter",
+  "settings": [
+    {
+      "name": "type",
+      "type": "string",
+      "required": true,
+      "allowed" : ["non-zero"]
+    },
+    {
+      "name": "proceedOnlyOnEmit",
+      "type": "boolean"
+    }
+  ],
+  "input":[
+    {
+      "name": "value",
+      "type": "any"
+    }
+  ],
+  "output": [
+    {
+      "name": "filtered",
+      "type": "boolean"
+    },
+    {
+      "name": "value",
+      "type": "any"
+    }
+  ]
+}
