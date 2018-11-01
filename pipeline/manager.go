@@ -14,8 +14,7 @@ import (
 	"github.com/project-flogo/core/data/mapper"
 	"github.com/project-flogo/core/data/resolve"
 	"github.com/project-flogo/core/support"
-	"github.com/project-flogo/core/support/logger"
-	"github.com/project-flogo/flow/definition"
+	"github.com/project-flogo/core/support/log"
 )
 
 const (
@@ -38,10 +37,12 @@ type Manager struct {
 	resolver      resolve.CompositeResolver
 
 	//todo switch to cache
-	rfMu            sync.Mutex // protects the flow maps
+	rfMu            sync.Mutex // protects the definition map
 	remotePipelines map[string]*Definition
-	flowProvider    definition.Provider
 }
+
+//todo fix logger
+var logger = log.RootLogger()
 
 func NewManager() *Manager {
 	manager := &Manager{}
@@ -91,9 +92,9 @@ func (*BasicRemotePipelineProvider) GetPipeline(pipelineURI string) (*Definition
 	if strings.HasPrefix(pipelineURI, uriSchemeFile) {
 		// File URI
 		logger.Infof("Loading Local Pipeline: %s\n", pipelineURI)
-		flowFilePath, _ := support.URLStringToFilePath(pipelineURI)
+		pipelineFilePath, _ := support.URLStringToFilePath(pipelineURI)
 
-		readBytes, err := ioutil.ReadFile(flowFilePath)
+		readBytes, err := ioutil.ReadFile(pipelineFilePath)
 		if err != nil {
 			readErr := fmt.Errorf("error reading pipeline with uri '%s', %s", pipelineURI, err.Error())
 			logger.Errorf(readErr.Error())
@@ -139,7 +140,7 @@ func (*BasicRemotePipelineProvider) GetPipeline(pipelineURI string) (*Definition
 			return nil, readErr
 		}
 
-		val := resp.Header.Get("flow-compressed")
+		val := resp.Header.Get("flogo-compressed")
 		if strings.ToLower(val) == "true" {
 			decodedBytes, err := decodeAndUnzip(string(body))
 			if err != nil {

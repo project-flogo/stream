@@ -4,15 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/project-flogo/core/data/mapper"
 	"strings"
 
 	"github.com/project-flogo/core/action"
 	"github.com/project-flogo/core/app/resource"
 	"github.com/project-flogo/core/data/coerce"
+	"github.com/project-flogo/core/data/mapper"
 	"github.com/project-flogo/core/data/metadata"
 	"github.com/project-flogo/core/engine/channels"
-	"github.com/project-flogo/core/support/logger"
+	"github.com/project-flogo/core/support/log"
 	"github.com/project-flogo/stream/pipeline"
 )
 
@@ -22,6 +22,7 @@ func init() {
 
 var manager *pipeline.Manager
 var actionMd = action.ToMetadata(&Settings{})
+var logger log.Logger
 
 type Settings struct {
 	PipelineURI   string `md:"pipelineURI,required"`
@@ -36,6 +37,8 @@ type ActionFactory struct {
 func (f *ActionFactory) Initialize(ctx action.InitContext) error {
 
 	f.resManager = ctx.ResourceManager()
+
+	logger = log.ChildLogger(log.RootLogger(), "pipeline")
 
 	if manager != nil {
 		return nil
@@ -100,8 +103,16 @@ func (f *ActionFactory) New(config *action.Config) (action.Action, error) {
 		streamAction.outChannel = ch
 	}
 
+	instId := ""
+
+	instLogger := logger
+
+	if log.CtxLoggingEnabled() {
+		instLogger = log.ChildLoggerWithFields(logger, log.String("pipelineName", streamAction.definition.Name()), log.String("pipelineId", instId))
+	}
+
 	//note: single pipeline instance for the moment
-	inst := pipeline.NewInstance(streamAction.definition, "", settings.GroupBy == "", streamAction.outChannel)
+	inst := pipeline.NewInstance(streamAction.definition, instId, settings.GroupBy == "", streamAction.outChannel, instLogger)
 	streamAction.inst = inst
 
 	return streamAction, nil

@@ -8,8 +8,7 @@ import (
 	"github.com/project-flogo/core/activity"
 	"github.com/project-flogo/core/data"
 	"github.com/project-flogo/core/data/metadata"
-	"github.com/project-flogo/core/data/resolve"
-	"github.com/project-flogo/core/support/logger"
+	"github.com/project-flogo/core/support/log"
 	"github.com/project-flogo/stream/pipeline/support"
 )
 
@@ -106,16 +105,8 @@ func (eCtx *ExecutionContext) Return(returnData map[string]interface{}, err erro
 	//ignore - not supported by pipeline
 }
 
-func (eCtx *ExecutionContext) WorkingData() data.Scope {
+func (eCtx *ExecutionContext) Scope() data.Scope {
 	return eCtx.pipeline.sm.GetState(eCtx.discriminator).GetScope()
-}
-
-func (eCtx *ExecutionContext) GetResolver() resolve.CompositeResolver {
-	return resolve.GetBasicResolver()
-}
-
-func (eCtx *ExecutionContext) GetDetails() data.StringsMap {
-	return nil
 }
 
 /////////////////////////////////////////
@@ -167,26 +158,16 @@ func (eCtx *ExecutionContext) GetOutput(name string) interface{} {
 	return nil
 }
 
-func (eCtx *ExecutionContext) SetOutput(name string, value interface{}) {
+func (eCtx *ExecutionContext) SetOutput(name string, value interface{}) error {
 
 	if eCtx.currentOutput == nil {
 		eCtx.currentOutput = make(map[string]interface{})
 	}
 
 	//todo coerce to type based on metadata
-
 	eCtx.currentOutput[name] = value
 
-	//attr, found := eCtx.currentOutput[name]
-	//if found {
-	//
-	//	attr.SetValue(value)
-	//} else {
-	//	//get type from the stages output or existing metadata
-	//	//todo
-	//	attr, _ = data.NewAttribute(name, data.TypeAny, value)
-	//	eCtx.currentOutput[name] = attr
-	//}
+	return nil
 }
 
 func (eCtx *ExecutionContext) GetSharedTempData() map[string]interface{} {
@@ -195,44 +176,17 @@ func (eCtx *ExecutionContext) GetSharedTempData() map[string]interface{} {
 	return state.GetSharedData(eCtx.currentStage().act)
 }
 
-// DEPRECATED
-func (eCtx *ExecutionContext) GetInitValue(key string) (value interface{}, exists bool) {
-	//ignore
-	return nil, false
+func (eCtx *ExecutionContext) Logger() log.Logger {
+	return eCtx.pipeline.logger
 }
 
-// DEPRECATED
-func (eCtx *ExecutionContext) TaskName() string {
-	//ignore
-	return ""
+func (eCtx *ExecutionContext) GetInputObject(input data.StructValue) error {
+	err := input.FromMap(eCtx.currentInput)
+	return err
 }
 
-func (eCtx *ExecutionContext) GetInputObject(object interface{}, converter activity.InputConverter) error {
-
-	if converter != nil {
-		err := converter(eCtx.currentInput, object)
-		if err != nil {
-			return err
-		}
-	} else {
-		metadata.MapToStruct(eCtx.currentInput, object, false)
-	}
-
-	return nil
-}
-
-func (eCtx *ExecutionContext) SetOutputObject(object interface{}, converter activity.OutputConverter) error {
-
-	if converter != nil {
-		var err error
-		eCtx.currentOutput, err = converter(object)
-		if err != nil {
-			return err
-		}
-	} else {
-		eCtx.currentOutput = metadata.StructToMap(object)
-	}
-
+func (eCtx *ExecutionContext) SetOutputObject(output data.StructValue) error {
+	eCtx.currentOutput = output.ToMap()
 	return nil
 }
 
@@ -299,6 +253,10 @@ func (eCtx *ExecutionContext) UpdateTimers() {
 
 // CreateTimer creates a timer, note: can only have one active timer at a time for an activity
 func (eCtx *ExecutionContext) CreateTimer(interval time.Duration, callback support.TimerCallback, repeating bool) error {
+
+	//todo fix logger
+
+	logger := log.RootLogger()
 
 	//todo add "clone ctx flag, incase exec context isn't discarded)
 	//discriminator := eCtx.discriminator
@@ -379,6 +337,9 @@ func (eCtx *ExecutionContext) CreateTimer(interval time.Duration, callback suppo
 }
 
 func invokeCallback(callback support.TimerCallback, ctx activity.Context) (resume bool) {
+
+	//todo fix logger
+	logger := log.RootLogger()
 
 	defer func() {
 		if r := recover(); r != nil {

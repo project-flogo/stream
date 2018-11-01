@@ -2,34 +2,15 @@ package stream
 
 import (
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"testing"
 
 	"github.com/project-flogo/core/action"
 	"github.com/project-flogo/core/app/resource"
-	"github.com/project-flogo/core/data"
 	"github.com/project-flogo/core/engine/channels"
-	_ "github.com/project-flogo/flow/test"
+	"github.com/project-flogo/core/support/test"
+	"github.com/project-flogo/stream/pipeline"
 	"github.com/stretchr/testify/assert"
 )
-
-var testMetadata *action.Metadata
-
-func getTestMetadata(t *testing.T) *action.Metadata {
-
-	if testMetadata == nil {
-		jsonMetadataBytes, err := ioutil.ReadFile("action.json")
-		assert.Nil(t, err)
-
-		md := action.NewMetadata(string(jsonMetadataBytes))
-		assert.NotNil(t, md)
-
-		testMetadata = md
-	}
-
-	return testMetadata
-}
 
 const testConfig string = `{
   "id": "flogo-stream",
@@ -55,31 +36,26 @@ const resData string = `{
 
 func TestActionFactory_New(t *testing.T) {
 
-	md := getTestMetadata(t)
-	f := &ActionFactory{metadata: md}
-	f.Init()
+	cfg := &action.Config{}
+	err := json.Unmarshal([]byte(testConfig), cfg)
 
-	config := &action.Config{}
-	err := json.Unmarshal([]byte(testConfig), config)
-	assert.Nil(t, err)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	af := ActionFactory{}
+	ctx := test.NewActionInitCtx()
+
+	af.Initialize(ctx)
 
 	resourceCfg := &resource.Config{ID: "pipeline:test"}
 	resourceCfg.Data = []byte(resData)
-	manager.LoadResource(resourceCfg)
+	ctx.AddResource(pipeline.RESTYPE, resourceCfg)
 
-	channels.Add("testChan:5")
-	defer channels.Close()
+	channels.New("testChan", 5)
 
-	act, err := f.New(config)
-
+	act, err := af.New(cfg)
 	assert.Nil(t, err)
 	assert.NotNil(t, act)
-}
-
-func TestBla(t *testing.T) {
-	v, _ := data.GetResolutionDetails("$pipeline[in].input")
-	fmt.Printf("value: %+v\n", v)
-
-	v2, _ := data.GetResolutionDetails("$pipeline.input")
-	fmt.Printf("value: %+v\n", v2)
 }

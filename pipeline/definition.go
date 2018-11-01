@@ -35,7 +35,11 @@ type Definition struct {
 	metadata *metadata.IOMetadata
 }
 
-// Metadata returns IO metadata for the flow
+// Metadata returns IO metadata for the pipeline
 func (d *Definition) Metadata() *metadata.IOMetadata {
 	return d.metadata
+}
+
+func (d *Definition) Name() string {
+	return d.name
 }

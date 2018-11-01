@@ -3,25 +3,26 @@ package pipeline
 import (
 	"errors"
 	"fmt"
-	"github.com/project-flogo/core/data/coerce"
 	"runtime/debug"
 	"strings"
 
 	"github.com/project-flogo/core/activity"
+	"github.com/project-flogo/core/data/coerce"
 	"github.com/project-flogo/core/engine/channels"
-	"github.com/project-flogo/core/support/logger"
+	"github.com/project-flogo/core/support/log"
 )
 
 type Instance struct {
 	def    *Definition
 	id     string
 	status Status
+	logger log.Logger
 
 	sm         StateManager
 	outChannel channels.Channel
 }
 
-func NewInstance(definition *Definition, id string, single bool, outChannel channels.Channel) *Instance {
+func NewInstance(definition *Definition, id string, single bool, outChannel channels.Channel, logger log.Logger) *Instance {
 
 	var sm StateManager
 
@@ -31,7 +32,7 @@ func NewInstance(definition *Definition, id string, single bool, outChannel chan
 		sm = NewMultiStateManager()
 	}
 
-	return &Instance{def: definition, id: id, sm: sm, outChannel: outChannel}
+	return &Instance{def: definition, id: id, sm: sm, outChannel: outChannel, logger: logger}
 }
 
 func (inst *Instance) Id() string {
@@ -44,6 +45,7 @@ func (inst *Instance) Run(discriminator string, input map[string]interface{}) (o
 
 	hasWork := true
 
+	//if context logging enable, need to come up with a unique id for the execution
 	ctx := &ExecutionContext{discriminator: discriminator, pipeline: inst}
 	ctx.pipelineInput = input
 
@@ -84,13 +86,13 @@ func (inst *Instance) DoStep(ctx *ExecutionContext, resume bool) (hasWork bool, 
 		}
 
 		if err != nil {
-			logger.Debugf("Pipeline[%s] - Execution failed - Error: %s", ctx.pipeline.id, err.Error())
+			inst.logger.Debugf("Pipeline[%s] - Execution failed - Error: %s", ctx.pipeline.id, err.Error())
 			ctx.status = ExecStatusFailed
 			return false, err
 		}
 
 		if !done {
-			logger.Debugf("Pipeline[%s] - Partial Execution Completed", ctx.pipeline.id)
+			inst.logger.Debugf("Pipeline[%s] - Partial Execution Completed", ctx.pipeline.id)
 
 			ctx.UpdateTimers()
 
@@ -103,7 +105,7 @@ func (inst *Instance) DoStep(ctx *ExecutionContext, resume bool) (hasWork bool, 
 		if ctx.stageId < len(inst.def.stages) {
 			hasNext = true
 		} else {
-			logger.Debugf("Pipeline[%s] - Execution Completed", ctx.pipeline.id)
+			inst.logger.Debugf("Pipeline[%s] - Execution Completed", ctx.pipeline.id)
 			ctx.status = ExecStatusCompleted
 		}
 	}
@@ -112,6 +114,8 @@ func (inst *Instance) DoStep(ctx *ExecutionContext, resume bool) (hasWork bool, 
 }
 
 func ExecuteCurrentStage(ctx *ExecutionContext) (done bool, err error) {
+
+	logger := ctx.pipeline.logger
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -216,6 +220,8 @@ func Resume(ctx *ExecutionContext) error {
 }
 
 func ResumeCurrentStage(ctx *ExecutionContext) (done bool, err error) {
+
+	logger := ctx.pipeline.logger
 
 	defer func() {
 		if r := recover(); r != nil {

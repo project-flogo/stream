@@ -5,7 +5,7 @@ import (
 	"github.com/project-flogo/core/activity"
 	"github.com/project-flogo/core/data/mapper"
 	"github.com/project-flogo/core/data/resolve"
-	"github.com/project-flogo/core/support/logger"
+	"github.com/project-flogo/core/support/log"
 )
 
 var (
@@ -29,7 +29,6 @@ type StageConfig struct {
 	Promotions []string `json:"addToPipeline,omitempty"`
 }
 
-
 type initContextImpl struct {
 	settings map[string]interface{}
 	mFactory mapper.Factory
@@ -41,6 +40,10 @@ func (ctx *initContextImpl) Settings() map[string]interface{} {
 
 func (ctx *initContextImpl) MapperFactory() mapper.Factory {
 	return ctx.mFactory
+}
+
+func (ctx *initContextImpl) Logger() log.Logger {
+	return log.RootLogger()
 }
 
 func NewStage(config *StageConfig, mf mapper.Factory, resolver resolve.CompositeResolver) (*Stage, error) {
@@ -57,7 +60,7 @@ func NewStage(config *StageConfig, mf mapper.Factory, resolver resolve.Composite
 	f := activity.GetFactory(config.Ref)
 
 	if f != nil {
-		initCtx := &initContextImpl{settings:config.Config.Settings, mFactory:mf}
+		initCtx := &initContextImpl{settings: config.Config.Settings, mFactory: mf}
 		pa, err := f(initCtx)
 		if err == nil {
 			act = pa
