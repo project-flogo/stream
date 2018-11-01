@@ -15,7 +15,7 @@ const (
 
 //we can generate json from this! - we could also create a "validate-able" object from this
 type Settings struct {
-	Type              string `md:"required,allowed(non-zero)"`
+	Type              string `md:"type,allowed(non-zero)"`
 	ProceedOnlyOnEmit bool
 }
 

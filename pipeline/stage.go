@@ -1,16 +1,17 @@
 package pipeline
 
 import (
-	"errors"
+	"fmt"
+
 	"github.com/project-flogo/core/activity"
 	"github.com/project-flogo/core/data/mapper"
 	"github.com/project-flogo/core/data/resolve"
 	"github.com/project-flogo/core/support/log"
 )
 
-var (
-	exists = struct{}{}
-)
+//var (
+//	exists = struct{}{}
+//)
 
 type Stage struct {
 	act activity.Activity
@@ -49,12 +50,12 @@ func (ctx *initContextImpl) Logger() log.Logger {
 func NewStage(config *StageConfig, mf mapper.Factory, resolver resolve.CompositeResolver) (*Stage, error) {
 
 	if config.Ref == "" {
-		return nil, errors.New("Activity not specified for Stage")
+		return nil, fmt.Errorf("Activity not specified for Stage")
 	}
 
 	act := activity.Get(config.Ref)
 	if act == nil {
-		return nil, errors.New("unsupported Activity:" + config.Ref)
+		return nil, fmt.Errorf("unsupported Activity:" + config.Ref)
 	}
 
 	f := activity.GetFactory(config.Ref)
@@ -62,9 +63,10 @@ func NewStage(config *StageConfig, mf mapper.Factory, resolver resolve.Composite
 	if f != nil {
 		initCtx := &initContextImpl{settings: config.Config.Settings, mFactory: mf}
 		pa, err := f(initCtx)
-		if err == nil {
-			act = pa
+		if err != nil {
+			return nil, fmt.Errorf("unable to create stage '%s' : %s", config.Ref, err.Error())
 		}
+		act = pa
 	}
 
 	stage := &Stage{}
