@@ -9,7 +9,7 @@
   "triggers": [
     {
       "id": "receive_http_message",
-      "ref": "github.com/TIBCOSoftware/flogo-contrib/trigger/rest",
+      "ref": "github.com/project-flogo/contrib/trigger/rest",
       "name": "Receive HTTP Message",
       "settings": {
         "port": "7777"
@@ -22,14 +22,8 @@
           },
           "action": {
             "id": "simple_filter",
-            "mappings": {
-              "input": [
-                {
-                  "mapTo": "input",
-                  "type": "assign",
-                  "value": "$.pathParams.val"
-                }
-              ]
+            "input" : {
+              "input":"=$.pathParams.val"
             }
           }
         }
@@ -37,7 +31,7 @@
     },
     {
       "id": "internal_channel",
-      "ref": "github.com/TIBCOSoftware/flogo-contrib/trigger/channel",
+      "ref": "github.com/project-flogo/contrib/trigger/channel",
       "handlers": [
         {
           "settings": {
@@ -45,14 +39,8 @@
           },
           "action": {
             "id": "simple_report",
-            "mappings": {
-              "input": [
-                {
-                  "mapTo": "rinput",
-                  "type": "assign",
-                  "value": "$.data.out"
-                }
-              ]
+            "input": {
+              "rinput" : "=$.data.out"
             }
           }
         }
@@ -84,19 +72,19 @@
           "input": [
             {
               "name": "input",
-              "type": "integer"
+              "type": "int"
             }
           ],
           "output": [
             {
               "name": "out",
-              "type": "integer"
+              "type": "int"
             }
           ]
         },
         "stages": [
           {
-            "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/filter",
+            "ref": "github.com/project-flogo/stream/activity/filter",
             "settings": {
               "type": "non-zero"
             },
@@ -108,7 +96,7 @@
             }
           },
           {
-            "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/log",
+            "ref": "github.com/project-flogo/contrib/activity/log",
             "input": {
               "message": "=$.value"
             }
@@ -123,13 +111,13 @@
           "input": [
             {
               "name": "rinput",
-              "type": "integer"
+              "type": "int"
             }
           ]
         },
         "stages": [
           {
-            "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/log",
+            "ref": "github.com/project-flogo/contrib/activity/log",
             "input": {
               "message": "=string.concat('fromChannel: ', $pipeline.rinput)"
             }

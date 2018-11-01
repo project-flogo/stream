@@ -6,7 +6,7 @@
   "triggers": [
     {
       "id": "receive_http_message",
-      "ref": "github.com/TIBCOSoftware/flogo-contrib/trigger/rest",
+      "ref": "github.com/project-flogo/contrib/trigger/rest",
       "name": "Receive HTTP Message",
       "settings": {
         "port": "7777"
@@ -19,14 +19,8 @@
           },
           "action": {
             "id": "simple_agg",
-            "mappings": {
-              "input": [
-                {
-                  "mapTo": "input",
-                  "type": "assign",
-                  "value": "$.pathParams.val"
-                }
-              ]
+            "input": {
+              "input" : "=$.pathParams.val"
             }
           }
         }
@@ -56,7 +50,7 @@
         },
         "stages": [
           {
-            "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/filter",
+            "ref": "github.com/project-flogo/stream/activity/filter",
             "settings": {
               "type": "non-zero"
             },
@@ -65,7 +59,7 @@
             }
           },
           {
-            "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/log",
+            "ref": "github.com/project-flogo/contrib/activity/log",
             "input": {
               "message": "=$.value"
             }
