@@ -4,98 +4,94 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
-	"github.com/TIBCOSoftware/flogo-lib/app/resource"
-	"github.com/TIBCOSoftware/flogo-lib/core/action"
-	"github.com/TIBCOSoftware/flogo-lib/core/data"
-	"github.com/TIBCOSoftware/flogo-lib/engine/channels"
-	"github.com/TIBCOSoftware/flogo-lib/logger"
+	"github.com/project-flogo/core/action"
+	"github.com/project-flogo/core/app/resource"
+	"github.com/project-flogo/core/data/coerce"
+	"github.com/project-flogo/core/data/mapper"
+	"github.com/project-flogo/core/data/metadata"
+	"github.com/project-flogo/core/engine/channels"
+	"github.com/project-flogo/core/support/log"
 	"github.com/project-flogo/stream/pipeline"
 )
 
-const (
-	actionRef = "github.com/project-flogo/stream"
-)
-
-//var idGenerator *util.Generator
-var manager *pipeline.Manager
-
-type StreamAction struct {
-	ioMetadata *data.IOMetadata
-	definition *pipeline.Definition
-	outChannel channels.Channel
-
-	inst    *pipeline.Instance
-	groupBy string
-}
-
-const (
-	sPipelineURI   = "pipelineURI"
-	sGroupBy       = "groupBy"
-	sOutputChannel = "outputChannel"
-)
-
-//we can generate json from this! - we could also create a "validate-able" object from this
-type Settings struct {
-	PipelineURI   string `md:"required"`
-	GroupBy       string
-	OutputChannel string
-}
-
-//todo fix this
-var metadata = &action.Metadata{ID: "github.com/project-flogo/stream/action", Async: true,
-	Settings: map[string]*data.Attribute{"pipeline": data.NewZeroAttribute("pipeline", data.TypeString),
-		"groupBy":       data.NewZeroAttribute("groupBy", data.TypeString),
-		"outputChannel": data.NewZeroAttribute("outputChannel", data.TypeString)}}
-
 func init() {
-	action.RegisterFactory(actionRef, &ActionFactory{})
+	action.Register(&StreamAction{}, &ActionFactory{})
+}
+
+var manager *pipeline.Manager
+var actionMd = action.ToMetadata(&Settings{})
+var logger log.Logger
+
+type Settings struct {
+	PipelineURI   string `md:"pipelineURI,required"`
+	GroupBy       string `md:"groupBy"`
+	OutputChannel string `md:"outputChannel"`
 }
 
 type ActionFactory struct {
-	metadata *action.Metadata
+	resManager *resource.Manager
 }
 
-func (f *ActionFactory) Init() error {
+func (f *ActionFactory) Initialize(ctx action.InitContext) error {
+
+	f.resManager = ctx.ResourceManager()
+
+	logger = log.ChildLogger(log.RootLogger(), "pipeline")
 
 	if manager != nil {
 		return nil
 	}
 
+	mapperFactory := mapper.NewFactory(pipeline.GetDataResolver())
+
 	manager = pipeline.NewManager()
-	resource.RegisterManager(pipeline.RESTYPE_PIPELINE, manager)
+	resource.RegisterLoader(pipeline.RESTYPE, pipeline.NewResourceLoader(mapperFactory, pipeline.GetDataResolver()))
 
 	return nil
 }
 
 func (f *ActionFactory) New(config *action.Config) (action.Action, error) {
 
-	streamAction := &StreamAction{}
-	settings, err := getSettings(config)
+	settings := &Settings{}
+	err := metadata.MapToStruct(config.Settings, settings, true)
 	if err != nil {
 		return nil, err
 	}
+
+	streamAction := &StreamAction{}
 
 	if settings.PipelineURI == "" {
 		return nil, fmt.Errorf("pipeline URI not specified")
 	}
 
-	def, err := manager.GetPipeline(settings.PipelineURI)
-	if err != nil {
-		return nil, err
-	} else {
-		if def == nil {
+	if strings.HasPrefix(settings.PipelineURI, resource.UriScheme) {
+
+		res := f.resManager.GetResource(settings.PipelineURI)
+
+		if res != nil {
+			def, ok := res.Object().(*pipeline.Definition)
+			if !ok {
+				return nil, errors.New("unable to resolve pipeline: " + settings.PipelineURI)
+			}
+			streamAction.definition = def
+		} else {
 			return nil, errors.New("unable to resolve pipeline: " + settings.PipelineURI)
 		}
-	}
-
-	streamAction.definition = def
-
-	if config.Metadata != nil {
-		streamAction.ioMetadata = config.Metadata
 	} else {
-		streamAction.ioMetadata = def.Metadata()
+		def, err := manager.GetPipeline(settings.PipelineURI)
+		if err != nil {
+			return nil, err
+		} else {
+			if def == nil {
+				return nil, errors.New("unable to resolve pipeline: " + settings.PipelineURI)
+			}
+		}
+		streamAction.definition = def
 	}
+
+	streamAction.ioMetadata = streamAction.definition.Metadata()
 
 	if settings.OutputChannel != "" {
 		ch := channels.Get(settings.OutputChannel)
@@ -107,30 +103,51 @@ func (f *ActionFactory) New(config *action.Config) (action.Action, error) {
 		streamAction.outChannel = ch
 	}
 
+	instId := ""
+
+	instLogger := logger
+
+	if log.CtxLoggingEnabled() {
+		instLogger = log.ChildLoggerWithFields(logger, log.String("pipelineName", streamAction.definition.Name()), log.String("pipelineId", instId))
+	}
+
 	//note: single pipeline instance for the moment
-	inst := pipeline.NewInstance(def, "", settings.GroupBy == "", streamAction.outChannel)
+	inst := pipeline.NewInstance(streamAction.definition, instId, settings.GroupBy == "", streamAction.outChannel, instLogger)
 	streamAction.inst = inst
 
 	return streamAction, nil
 }
 
-func (s *StreamAction) Metadata() *action.Metadata {
-	return metadata
+type StreamAction struct {
+	ioMetadata *metadata.IOMetadata
+	definition *pipeline.Definition
+	outChannel channels.Channel
+
+	inst    *pipeline.Instance
+	groupBy string
 }
 
-func (s *StreamAction) IOMetadata() *data.IOMetadata {
+func (s *StreamAction) Info() *action.Info {
+	panic("implement me")
+}
+
+func (s *StreamAction) Metadata() *action.Metadata {
+	return actionMd
+}
+
+func (s *StreamAction) IOMetadata() *metadata.IOMetadata {
 	return s.ioMetadata
 }
 
-func (s *StreamAction) Run(context context.Context, inputs map[string]*data.Attribute, handler action.ResultHandler) error {
+func (s *StreamAction) Run(context context.Context, inputs map[string]interface{}, handler action.ResultHandler) error {
 
 	discriminator := ""
 
 	if s.groupBy != "" {
 		//note: for now groupings are determined by inputs to the action
-		attr, ok := inputs[s.groupBy]
+		value, ok := inputs[s.groupBy]
 		if ok {
-			discriminator, _ = data.CoerceToString(attr.Value())
+			discriminator, _ = coerce.ToString(value)
 		}
 	}
 
@@ -153,47 +170,4 @@ func (s *StreamAction) Run(context context.Context, inputs map[string]*data.Attr
 	}()
 
 	return nil
-}
-
-func getSettings(config *action.Config) (*Settings, error) {
-
-	settings := &Settings{}
-
-	setting, exists := config.Settings[sPipelineURI]
-	if exists {
-		//this should be done already for us, action can use its metadata to fix this, defaults and all
-		val, err := data.CoerceToString(setting)
-		if err == nil {
-			settings.PipelineURI = val
-		}
-	} else {
-		//throw error if //sPipelineURI is not defined
-	}
-
-	setting, exists = config.Settings[sGroupBy]
-	if exists {
-		//this should be done already for us, action can use its metadata to fix this, defaults and all
-		val, err := data.CoerceToString(setting)
-		if err == nil {
-			settings.GroupBy = val
-		}
-	} else {
-		//throw error if //sPipelineURI is not defined
-	}
-
-	setting, exists = config.Settings[sOutputChannel]
-	if exists {
-		//this should be done already for us, action can use its metadata to fix this, defaults and all
-		val, err := data.CoerceToString(setting)
-		if err == nil {
-			settings.OutputChannel = val
-		}
-	} else {
-		//throw error if //sPipelineURI is not defined
-	}
-
-	// settings validation can be done here once activities are created on configuration instead of
-	// setting up during runtime
-
-	return settings, nil
 }

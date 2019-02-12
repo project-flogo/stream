@@ -2,96 +2,65 @@ package pipeline
 
 import (
 	"fmt"
-	"os"
-	"strings"
 
-	"github.com/TIBCOSoftware/flogo-lib/core/data"
-	"github.com/TIBCOSoftware/flogo-lib/logger"
+	"github.com/project-flogo/core/data"
+	"github.com/project-flogo/core/data/resolve"
 )
 
-var resolver = &Resolver{}
+var pipelineRes = resolve.NewCompositeResolver(map[string]resolve.Resolver{
+	".":        &resolve.ScopeResolver{},
+	"env":      &resolve.EnvResolver{},
+	"property": &resolve.PropertyResolver{},
+	"input":    &InputResolver{},
+	"pipeline": &PipelineResolver{}})
 
-func GetDataResolver() data.Resolver {
-	return resolver
+func GetDataResolver() resolve.CompositeResolver {
+	return pipelineRes
 }
 
-type Resolver struct {
+var resolverInfo = resolve.NewResolverInfo(false, false)
+
+type PipelineResolver struct {
 }
 
-func (r *Resolver) Resolve(toResolve string, scope data.Scope) (value interface{}, err error) {
+func (r *PipelineResolver) GetResolverInfo() *resolve.ResolverInfo {
+	return resolverInfo
+}
 
-	var details *data.ResolutionDetails
+func (r *PipelineResolver) Resolve(scope data.Scope, itemName, valueName string) (interface{}, error) {
 
-	if strings.HasPrefix(toResolve, "$") {
-		details, err = data.GetResolutionDetails(toResolve[1:])
-	} else {
-		return data.SimpleScopeResolve(toResolve, scope)
-	}
+	var value interface{}
+	if ms, ok := scope.(MultiScope); ok {
 
-	if err != nil {
-		return nil, err
-	}
-
-	if details == nil {
-		return nil, fmt.Errorf("unable to determine resolver for %s", toResolve)
-	}
-
-	var exists bool
-
-	switch details.ResolverName {
-	case "property":
-		// Property resolution
-		provider := data.GetPropertyProvider()
-		value, exists = provider.GetProperty(details.Property + details.Path) //should we add the path and reset it to ""
+		var exists bool
+		value, exists = ms.GetValueByScope("pipeline", valueName)
 		if !exists {
-			err := fmt.Errorf("failed to resolve Property: '%s', ensure that property is configured in the application", details.Property)
-			logger.Error(err.Error())
-			return nil, err
-		}
-	case "env":
-		// Environment resolution
-		value, exists = os.LookupEnv(details.Property + details.Path)
-		if !exists {
-			err := fmt.Errorf("failed to resolve Environment Variable: '%s', ensure that variable is configured", details.Property)
-			logger.Error(err.Error())
-			return "", err
-		}
-	case "pipeline":
-		if ms, ok := scope.(MultiScope); ok {
-
-			//if details.out, throw error
-			attr, exists := ms.GetAttrByScope("pipeline", details.Property)
-			if !exists {
-				return nil, fmt.Errorf("failed to resolve attr: '%s', not found in pipeline", details.Property)
-			}
-			value = attr.Value()
-		}
-	case "input":
-		if ms, ok := scope.(MultiScope); ok {
-			attr, exists := ms.GetAttrByScope("input", details.Property)
-			if !exists {
-				return nil, fmt.Errorf("failed to resolve attr: '%s', not found in input scope", details.Property)
-			}
-			value = attr.Value()
-		}
-	case ".":
-		//Current scope resolution
-		attr, exists := scope.GetAttr(details.Property)
-		if !exists {
-			return nil, fmt.Errorf("failed to resolve attr: '%s', not found in scope", details.Property)
-		}
-		value = attr.Value()
-	default:
-		return nil, fmt.Errorf("unsupported resolver: %s", details.ResolverName)
-	}
-
-	if details.Path != "" {
-		value, err = data.PathGetValue(value, details.Path)
-		if err != nil {
-			logger.Error(err.Error())
-			return nil, err
+			return nil, fmt.Errorf("failed to resolve attr: '%s', not found in pipeline", valueName)
 		}
 	}
 
+	return value, nil
+}
+
+var actResolverInfo = resolve.NewResolverInfo(false, true)
+
+type InputResolver struct {
+}
+
+func (r *InputResolver) GetResolverInfo() *resolve.ResolverInfo {
+	return resolverInfo
+}
+
+func (r *InputResolver) Resolve(scope data.Scope, itemName, valueName string) (interface{}, error) {
+	var value interface{}
+
+	if ms, ok := scope.(MultiScope); ok {
+		var exists bool
+
+		value, exists = ms.GetValueByScope("input", valueName)
+		if !exists {
+			return nil, fmt.Errorf("failed to resolve attr: '%s', not found in input scope", valueName)
+		}
+	}
 	return value, nil
 }

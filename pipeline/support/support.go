@@ -3,7 +3,7 @@ package support
 import (
 	"time"
 
-	"github.com/TIBCOSoftware/flogo-lib/core/activity"
+	"github.com/project-flogo/core/activity"
 )
 
 type TimerCallback func(ctx activity.Context) (resume bool)
@@ -22,8 +22,8 @@ type TimerSupport interface {
 	CreateTimer(interval time.Duration, callback TimerCallback, repeating bool) error
 }
 
-// GetTimerSupport for the activity
-func GetTimerSupport(ctx activity.Context) (TimerSupport, bool) {
+// GetTimerSupport for the activity //activity.Context
+func GetTimerSupport(ctx interface{}) (TimerSupport, bool) {
 
 	ts, ok := ctx.(TimerSupport)
 	return ts, ok

@@ -5,9 +5,10 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/TIBCOSoftware/flogo-lib/core/activity"
-	"github.com/TIBCOSoftware/flogo-lib/core/data"
-	"github.com/TIBCOSoftware/flogo-lib/logger"
+	"github.com/project-flogo/core/activity"
+	"github.com/project-flogo/core/data"
+	"github.com/project-flogo/core/data/metadata"
+	"github.com/project-flogo/core/support/log"
 	"github.com/project-flogo/stream/pipeline/support"
 )
 
@@ -58,11 +59,11 @@ type ExecutionContext struct {
 	stageId int
 	status  ExecutionStatus
 
-	pipelineInput map[string]*data.Attribute
-	pipeineOutput map[string]*data.Attribute
+	pipelineInput  map[string]interface{}
+	pipelineOutput map[string]interface{}
 
-	currentInput  map[string]*data.Attribute
-	currentOutput map[string]*data.Attribute
+	currentInput  map[string]interface{}
+	currentOutput map[string]interface{}
 
 	updateTimers uint8
 }
@@ -76,7 +77,7 @@ func (eCtx *ExecutionContext) currentStage() *Stage {
 	return eCtx.pipeline.def.stages[eCtx.stageId]
 }
 
-func (eCtx *ExecutionContext) pipelineScope() data.MutableScope {
+func (eCtx *ExecutionContext) pipelineScope() data.Scope {
 	//todo just maybe store ref to pipeline state in ctx
 	return eCtx.pipeline.sm.GetState(eCtx.discriminator).GetScope()
 }
@@ -92,24 +93,20 @@ func (eCtx *ExecutionContext) Name() string {
 	return eCtx.pipeline.def.name
 }
 
-func (eCtx *ExecutionContext) IOMetadata() *data.IOMetadata {
+func (eCtx *ExecutionContext) IOMetadata() *metadata.IOMetadata {
 	return eCtx.pipeline.def.metadata
 }
 
-func (eCtx *ExecutionContext) Reply(replyData map[string]*data.Attribute, err error) {
+func (eCtx *ExecutionContext) Reply(replyData map[string]interface{}, err error) {
 	//ignore - not supported by pipeline
 }
 
-func (eCtx *ExecutionContext) Return(returnData map[string]*data.Attribute, err error) {
+func (eCtx *ExecutionContext) Return(returnData map[string]interface{}, err error) {
 	//ignore - not supported by pipeline
 }
 
-func (eCtx *ExecutionContext) WorkingData() data.Scope {
+func (eCtx *ExecutionContext) Scope() data.Scope {
 	return eCtx.pipeline.sm.GetState(eCtx.discriminator).GetScope()
-}
-
-func (eCtx *ExecutionContext) GetResolver() data.Resolver {
-	return data.GetBasicResolver()
 }
 
 /////////////////////////////////////////
@@ -123,7 +120,7 @@ func (eCtx *ExecutionContext) GetSetting(setting string) (value interface{}, exi
 	stage := eCtx.currentStage()
 	attr, found := stage.settings[setting]
 	if found {
-		return attr.Value(), true
+		return attr, true
 	}
 
 	return nil, false
@@ -131,11 +128,12 @@ func (eCtx *ExecutionContext) GetSetting(setting string) (value interface{}, exi
 
 func (eCtx *ExecutionContext) GetInput(name string) interface{} {
 
-	attr, found := eCtx.currentInput[name]
+	value, found := eCtx.currentInput[name]
 	if found {
-		return attr.Value()
+		return value
 	} else {
 		stage := eCtx.currentStage()
+
 		attr, found := stage.act.Metadata().Input[name]
 		if found {
 			return attr.Value()
@@ -146,35 +144,30 @@ func (eCtx *ExecutionContext) GetInput(name string) interface{} {
 }
 
 func (eCtx *ExecutionContext) GetOutput(name string) interface{} {
-	attr, found := eCtx.currentOutput[name]
+	value, found := eCtx.currentOutput[name]
 	if found {
-		return attr.Value()
+		return value
 	} else {
 		stage := eCtx.currentStage()
 		attr, found := stage.outputAttrs[name]
 		if found {
-			return attr.Value()
+			return attr
 		}
 	}
 
 	return nil
 }
 
-func (eCtx *ExecutionContext) SetOutput(name string, value interface{}) {
+func (eCtx *ExecutionContext) SetOutput(name string, value interface{}) error {
 
 	if eCtx.currentOutput == nil {
-		eCtx.currentOutput = make(map[string]*data.Attribute)
+		eCtx.currentOutput = make(map[string]interface{})
 	}
 
-	attr, found := eCtx.currentOutput[name]
-	if found {
-		attr.SetValue(value)
-	} else {
-		//get type from the stages output or existing metadata
-		//todo
-		attr, _ = data.NewAttribute(name, data.TypeAny, value)
-		eCtx.currentOutput[name] = attr
-	}
+	//todo coerce to type based on metadata
+	eCtx.currentOutput[name] = value
+
+	return nil
 }
 
 func (eCtx *ExecutionContext) GetSharedTempData() map[string]interface{} {
@@ -183,21 +176,17 @@ func (eCtx *ExecutionContext) GetSharedTempData() map[string]interface{} {
 	return state.GetSharedData(eCtx.currentStage().act)
 }
 
-// DEPRECATED
-func (eCtx *ExecutionContext) GetInitValue(key string) (value interface{}, exists bool) {
-	//ignore
-	return nil, false
+func (eCtx *ExecutionContext) Logger() log.Logger {
+	return eCtx.pipeline.logger
 }
 
-// DEPRECATED
-func (eCtx *ExecutionContext) TaskName() string {
-	//ignore
-	return ""
+func (eCtx *ExecutionContext) GetInputObject(input data.StructValue) error {
+	err := input.FromMap(eCtx.currentInput)
+	return err
 }
 
-// DEPRECATED
-func (eCtx *ExecutionContext) FlowDetails() activity.FlowDetails {
-	//ignore
+func (eCtx *ExecutionContext) SetOutputObject(output data.StructValue) error {
+	eCtx.currentOutput = output.ToMap()
 	return nil
 }
 
@@ -235,7 +224,7 @@ func (eCtx *ExecutionContext) CancelTimer(repeating bool) {
 	}
 }
 
-// UpdateTimer creates a timer, note: can only have one active timer at a time for an activity
+// CreateTimer creates a timer, note: can only have one active timer at a time for an activity
 func (eCtx *ExecutionContext) UpdateTimer(repeating bool) {
 
 	if repeating {
@@ -245,7 +234,7 @@ func (eCtx *ExecutionContext) UpdateTimer(repeating bool) {
 	}
 }
 
-// UpdateTimers creates a timer, note: can only have one active timer at a time for an activity
+// CreateTimer creates a timer, note: can only have one active timer at a time for an activity
 func (eCtx *ExecutionContext) UpdateTimers() {
 	act := eCtx.currentStage().act
 	state := eCtx.pipeline.sm.GetState(eCtx.discriminator)
@@ -264,6 +253,10 @@ func (eCtx *ExecutionContext) UpdateTimers() {
 
 // CreateTimer creates a timer, note: can only have one active timer at a time for an activity
 func (eCtx *ExecutionContext) CreateTimer(interval time.Duration, callback support.TimerCallback, repeating bool) error {
+
+	//todo fix logger
+
+	logger := log.RootLogger()
 
 	//todo add "clone ctx flag, incase exec context isn't discarded)
 	//discriminator := eCtx.discriminator
@@ -287,14 +280,15 @@ func (eCtx *ExecutionContext) CreateTimer(interval time.Duration, callback suppo
 			for range holder.ticker.C {
 
 				newCtx := holder.GetLastExecCtx()
-				//newCtx := &ExecutionContext{discriminator: discriminator, pipeline: inst}
-				//newCtx.stageId = stageId
-				//newCtx.status = ExecStatusActive
 
 				//todo - what should we do if no samples have come in a window,  ignore for now
 
 				if newCtx != nil {
-					logger.Debugf("Repeating timer fired for activity: %s", newCtx.currentStage().act.Metadata().ID)
+
+					if logger.DebugEnabled() {
+						ref := activity.GetRef(newCtx.currentStage().act)
+						logger.Debugf("Repeating timer fired for activity: %s", ref)
+					}
 
 					resume := invokeCallback(callback, newCtx)
 					//resume := callback(newCtx)
@@ -302,7 +296,9 @@ func (eCtx *ExecutionContext) CreateTimer(interval time.Duration, callback suppo
 						Resume(newCtx)
 					}
 				} else {
-					logger.Debugf("Repeating timer fired for activity: %s, but not running since no samples in window", "activity")
+					if logger.DebugEnabled() {
+						logger.Debugf("Repeating timer fired for activity: %s, but not running since no samples in window", "activity")
+					}
 				}
 			}
 		}()
@@ -324,7 +320,10 @@ func (eCtx *ExecutionContext) CreateTimer(interval time.Duration, callback suppo
 			//newCtx.stageId = stageId
 			//newCtx.status = ExecStatusActive
 
-			logger.Debugf("Timeout timer fired for activity: %s", newCtx.currentStage().act.Metadata().ID)
+			if logger.DebugEnabled() {
+				ref := activity.GetRef(newCtx.currentStage().act)
+				logger.Debugf("Timeout timer fired for activity: %s", ref)
+			}
 
 			resume := invokeCallback(callback, newCtx)
 			//resume := callback(newCtx)
@@ -337,8 +336,10 @@ func (eCtx *ExecutionContext) CreateTimer(interval time.Duration, callback suppo
 	return nil
 }
 
-
 func invokeCallback(callback support.TimerCallback, ctx activity.Context) (resume bool) {
+
+	//todo fix logger
+	logger := log.RootLogger()
 
 	defer func() {
 		if r := recover(); r != nil {

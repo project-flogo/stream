@@ -11,35 +11,38 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/TIBCOSoftware/flogo-contrib/action/flow/definition"
-	"github.com/TIBCOSoftware/flogo-lib/app/resource"
-	"github.com/TIBCOSoftware/flogo-lib/logger"
-	"github.com/TIBCOSoftware/flogo-lib/util"
+	"github.com/project-flogo/core/data/mapper"
+	"github.com/project-flogo/core/data/resolve"
+	"github.com/project-flogo/core/support"
+	"github.com/project-flogo/core/support/log"
 )
 
 const (
-	uriSchemeFile    = "file://"
-	uriSchemeHttp    = "http://"
-	uriSchemeRes     = "res://"
-	RESTYPE_PIPELINE = "pipeline"
+	uriSchemeFile = "file://"
+	uriSchemeHttp = "http://"
 )
 
-var defaultManager *Manager
-
-func GetManager() *Manager {
-	return defaultManager
-}
+//var defaultManager *Manager
+//
+//func GetManager() *Manager {
+//	return defaultManager
+//}
 
 type Manager struct {
 	pipelines map[string]*Definition
 
 	pipelineProvider *BasicRemotePipelineProvider
 
+	mapperFactory mapper.Factory
+	resolver      resolve.CompositeResolver
+
 	//todo switch to cache
-	rfMu            sync.Mutex // protects the flow maps
+	rfMu            sync.Mutex // protects the definition map
 	remotePipelines map[string]*Definition
-	flowProvider    definition.Provider
 }
+
+//todo fix logger
+var logger = log.RootLogger()
 
 func NewManager() *Manager {
 	manager := &Manager{}
@@ -49,45 +52,7 @@ func NewManager() *Manager {
 	return manager
 }
 
-func (m *Manager) LoadResource(config *resource.Config) error {
-
-	var pipelineCfgBytes []byte
-
-	if config.Compressed {
-		decodedBytes, err := decodeAndUnzip(string(config.Data))
-		if err != nil {
-			return fmt.Errorf("error decoding compressed resource with id '%s', %s", config.ID, err.Error())
-		}
-
-		pipelineCfgBytes = decodedBytes
-	} else {
-		pipelineCfgBytes = config.Data
-	}
-
-	var defConfig *DefinitionConfig
-	err := json.Unmarshal(pipelineCfgBytes, &defConfig)
-	if err != nil {
-		return fmt.Errorf("error unmarshalling pipeline resource with id '%s', %s", config.ID, err.Error())
-	}
-
-	pDef, err := NewDefinition(defConfig)
-	if err != nil {
-		return err
-	}
-
-	m.pipelines[config.ID] = pDef
-	return nil
-}
-
-func (m *Manager) GetResource(id string) interface{} {
-	return m.pipelines[id]
-}
-
 func (m *Manager) GetPipeline(uri string) (*Definition, error) {
-
-	if strings.HasPrefix(uri, uriSchemeRes) {
-		return m.pipelines[uri[6:]], nil
-	}
 
 	m.rfMu.Lock()
 	defer m.rfMu.Unlock()
@@ -105,7 +70,7 @@ func (m *Manager) GetPipeline(uri string) (*Definition, error) {
 			return nil, err
 		}
 
-		pDef, err = NewDefinition(pConfig)
+		pDef, err = NewDefinition(pConfig, m.mapperFactory, m.resolver)
 		if err != nil {
 			return nil, err
 		}
@@ -127,9 +92,9 @@ func (*BasicRemotePipelineProvider) GetPipeline(pipelineURI string) (*Definition
 	if strings.HasPrefix(pipelineURI, uriSchemeFile) {
 		// File URI
 		logger.Infof("Loading Local Pipeline: %s\n", pipelineURI)
-		flowFilePath, _ := util.URLStringToFilePath(pipelineURI)
+		pipelineFilePath, _ := support.URLStringToFilePath(pipelineURI)
 
-		readBytes, err := ioutil.ReadFile(flowFilePath)
+		readBytes, err := ioutil.ReadFile(pipelineFilePath)
 		if err != nil {
 			readErr := fmt.Errorf("error reading pipeline with uri '%s', %s", pipelineURI, err.Error())
 			logger.Errorf(readErr.Error())
@@ -147,7 +112,7 @@ func (*BasicRemotePipelineProvider) GetPipeline(pipelineURI string) (*Definition
 
 		}
 
-	} else {
+	} else if strings.HasPrefix(pipelineURI, uriSchemeHttp) {
 		// URI
 		req, err := http.NewRequest("GET", pipelineURI, nil)
 		client := &http.Client{}
@@ -175,7 +140,7 @@ func (*BasicRemotePipelineProvider) GetPipeline(pipelineURI string) (*Definition
 			return nil, readErr
 		}
 
-		val := resp.Header.Get("flow-compressed")
+		val := resp.Header.Get("flogo-compressed")
 		if strings.ToLower(val) == "true" {
 			decodedBytes, err := decodeAndUnzip(string(body))
 			if err != nil {
@@ -187,6 +152,8 @@ func (*BasicRemotePipelineProvider) GetPipeline(pipelineURI string) (*Definition
 		} else {
 			pDefBytes = body
 		}
+	} else {
+		return nil, fmt.Errorf("unsupport uri %s", pipelineURI)
 	}
 
 	var pDef *DefinitionConfig

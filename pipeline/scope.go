@@ -2,29 +2,26 @@ package pipeline
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 
-	"github.com/TIBCOSoftware/flogo-lib/core/data"
-	"github.com/TIBCOSoftware/flogo-lib/logger"
+	"github.com/project-flogo/core/data"
 )
 
+type MultiScope interface {
+	GetValueByScope(scope string, name string) (value interface{}, exists bool)
+}
+
 type SharedScope struct {
-	attrs   map[string]*data.Attribute
+	attrs   map[string]interface{}
 	rwMutex sync.RWMutex
 }
 
-/////////////////////////////////////////
-//  data.Scope Implementation
+func (s *SharedScope) GetValue(name string) (value interface{}, exists bool) {
+	s.rwMutex.RLock()
+	defer s.rwMutex.RUnlock()
 
-// GetAttr implements data.Scope.GetAttr
-func (inst *SharedScope) GetAttr(attrName string) (value *data.Attribute, exists bool) {
-
-	inst.rwMutex.RLock()
-	defer inst.rwMutex.RUnlock()
-
-	if inst.attrs != nil {
-		attr, found := inst.attrs[attrName]
+	if s.attrs != nil {
+		attr, found := s.attrs[name]
 
 		if found {
 			return attr, true
@@ -34,98 +31,37 @@ func (inst *SharedScope) GetAttr(attrName string) (value *data.Attribute, exists
 	return nil, false
 }
 
-// SetAttrValue implements data.Scope.SetAttrValue
-func (inst *SharedScope) SetAttrValue(attrName string, value interface{}) error {
+func (s *SharedScope) SetValue(name string, value interface{}) error {
+	s.rwMutex.Lock()
+	defer s.rwMutex.Unlock()
 
-	inst.rwMutex.Lock()
-	defer inst.rwMutex.Unlock()
-
-	if inst.attrs == nil {
+	if s.attrs == nil {
 		//todo is it work allocating this lazily?
-		inst.attrs = make(map[string]*data.Attribute)
+		s.attrs = make(map[string]interface{})
 	}
 
-	logger.Debugf("SetAttr - name: %s, value:%v\n", attrName, value)
-
-	existingAttr, exists := inst.GetAttr(attrName)
-
-	if exists {
-		existingAttr.SetValue(value)
-		return nil
+	if logger.DebugEnabled() {
+		logger.Debugf("SetAttr - name: %s, value:%v\n", name, value)
 	}
 
-	return fmt.Errorf("Attr [%s] does not exists", attrName)
-}
+	s.attrs[name] = value
 
-// AddAttr implements data.MutableScope.SetAttrValue
-func (inst *SharedScope) AddAttr(attrName string, attrType data.Type, value interface{}) *data.Attribute {
-
-	inst.rwMutex.Lock()
-	defer inst.rwMutex.Unlock()
-
-	if inst.attrs == nil {
-		inst.attrs = make(map[string]*data.Attribute)
-	}
-
-	logger.Debugf("AddAttr - name: %s, type: %s, value:%v", attrName, attrType, value)
-
-	var attr *data.Attribute
-
-	existingAttr, exists := inst.GetAttr(attrName)
-
-	if exists {
-		attr = existingAttr
-		attr.SetValue(value)
-	} else {
-		//todo handle error
-		attr, _ = data.NewAttribute(attrName, attrType, value)
-		inst.attrs[attrName] = attr
-	}
-
-	return attr
+	return nil
 }
 
 // SimpleScope is a basic implementation of a scope
 type SimpleScope struct {
 	parentScope data.Scope
-	attrs       map[string]*data.Attribute
+	attrs       map[string]interface{}
 }
 
 // NewSimpleScope creates a new SimpleScope
-func NewSimpleScope(attrs []*data.Attribute, parentScope data.Scope) data.Scope {
+func NewSimpleScope(attrs map[string]interface{}, parentScope data.Scope) data.Scope {
 
-	return newSimpleScope(attrs, parentScope)
+	return &SimpleScope{attrs: attrs, parentScope: parentScope}
 }
 
-// NewSimpleScope creates a new SimpleScope
-func newSimpleScope(attrs []*data.Attribute, parentScope data.Scope) *SimpleScope {
-
-	scope := &SimpleScope{
-		parentScope: parentScope,
-		attrs:       make(map[string]*data.Attribute),
-	}
-
-	for _, attr := range attrs {
-		scope.attrs[attr.Name()] = attr
-	}
-
-	return scope
-}
-
-// NewSimpleScopeFromMap creates a new SimpleScope
-func NewSimpleScopeFromMap(attrs map[string]*data.Attribute, parentScope data.Scope) *SimpleScope {
-
-	scope := &SimpleScope{
-		parentScope: parentScope,
-		attrs:       attrs,
-	}
-
-	return scope
-}
-
-// GetAttr implements Scope.GetAttr
-func (s *SimpleScope) GetAttr(name string) (attr *data.Attribute, exists bool) {
-
+func (s *SimpleScope) GetValue(name string) (value interface{}, exists bool) {
 	attr, found := s.attrs[name]
 
 	if found {
@@ -133,39 +69,15 @@ func (s *SimpleScope) GetAttr(name string) (attr *data.Attribute, exists bool) {
 	}
 
 	if s.parentScope != nil {
-		return s.parentScope.GetAttr(name)
+		return s.parentScope.GetValue(name)
 	}
 
 	return nil, false
 }
 
-// SetAttrValue implements Scope.SetAttrValue
-func (s *SimpleScope) SetAttrValue(name string, value interface{}) error {
-
-	attr, found := s.attrs[name]
-
-	if found {
-		attr.SetValue(value)
-		return nil
-	}
-
-	return errors.New("attribute not in scope")
-}
-
-// AddAttr implements MutableScope.AddAttr
-func (s *SimpleScope) AddAttr(name string, valueType data.Type, value interface{}) *data.Attribute {
-
-	attr, found := s.attrs[name]
-
-	if found {
-		attr.SetValue(value)
-	} else {
-		//todo handle error, add error to AddAttr signature
-		attr, _ = data.NewAttribute(name, valueType, value)
-		s.attrs[name] = attr
-	}
-
-	return attr
+func (s *SimpleScope) SetValue(name string, value interface{}) error {
+	s.attrs[name] = value
+	return nil
 }
 
 // SimpleScope is a basic implementation of a scope
@@ -173,8 +85,7 @@ type StageInputScope struct {
 	execCtx *ExecutionContext
 }
 
-// GetAttr implements Scope.GetAttr
-func (s *StageInputScope) GetAttr(name string) (attr *data.Attribute, exists bool) {
+func (s *StageInputScope) GetValue(name string) (value interface{}, exists bool) {
 
 	attrs := s.execCtx.currentOutput
 
@@ -187,7 +98,11 @@ func (s *StageInputScope) GetAttr(name string) (attr *data.Attribute, exists boo
 	return attr, found
 }
 
-func (s *StageInputScope) GetAttrByScope(scope string, name string) (attr *data.Attribute, exists bool) {
+func (s *StageInputScope) SetValue(name string, value interface{}) error {
+	return errors.New("read-only scope")
+}
+
+func (s *StageInputScope) GetValueByScope(scope string, name string) (value interface{}, exists bool) {
 
 	//on input
 	//   get pipeline inputs : $pipeline[in]
@@ -208,19 +123,12 @@ func (s *StageInputScope) GetAttrByScope(scope string, name string) (attr *data.
 	return attr, found
 }
 
-// SetAttrValue implements Scope.SetAttrValue
-func (s *StageInputScope) SetAttrValue(name string, value interface{}) error {
-	return errors.New("read-only scope")
-}
-
 // SimpleScope is a basic implementation of a scope
 type StageOutputScope struct {
 	execCtx *ExecutionContext
 }
 
-// GetAttr implements Scope.GetAttr
-func (s *StageOutputScope) GetAttr(name string) (attr *data.Attribute, exists bool) {
-
+func (s *StageOutputScope) GetValue(name string) (value interface{}, exists bool) {
 	attrs := s.execCtx.currentOutput
 
 	attr, found := attrs[name]
@@ -232,8 +140,11 @@ func (s *StageOutputScope) GetAttr(name string) (attr *data.Attribute, exists bo
 	return attr, found
 }
 
-func (s *StageOutputScope) GetAttrByScope(scope string, name string) (attr *data.Attribute, exists bool) {
+func (s *StageOutputScope) SetValue(name string, value interface{}) error {
+	return errors.New("read-only scope")
+}
 
+func (s *StageOutputScope) GetValueByScope(scope string, name string) (value interface{}, exists bool) {
 	attrs := s.execCtx.currentOutput
 
 	switch scope {
@@ -250,13 +161,4 @@ func (s *StageOutputScope) GetAttrByScope(scope string, name string) (attr *data
 	}
 
 	return attr, found
-}
-
-// SetAttrValue implements Scope.SetAttrValue
-func (s *StageOutputScope) SetAttrValue(name string, value interface{}) error {
-	return errors.New("read-only scope")
-}
-
-type MultiScope interface {
-	GetAttrByScope(scope string, name string) (attr *data.Attribute, exists bool)
 }
