@@ -1,7 +1,6 @@
 {
   "name": "stream",
   "type": "flogo:action",
-  "ref": "github.com/project-flogo/stream/action",
   "version": "0.0.1",
   "title": "Flogo Stream",
   "description": "Simple Stream Action",
