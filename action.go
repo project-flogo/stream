@@ -144,6 +144,7 @@ func (s *StreamAction) Run(context context.Context, inputs map[string]interface{
 	discriminator := ""
 
 	if s.groupBy != "" {
+		//navigate input
 		//note: for now groupings are determined by inputs to the action
 		value, ok := inputs[s.groupBy]
 		if ok {
