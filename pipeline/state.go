@@ -35,7 +35,8 @@ type State interface {
 func NewSimpleStateManager() StateManager {
 
 	//tickers map[activity.Activity]*time.Ticker
-	state := &simpleState{scope: &SharedScope{}}
+	//todo optimize so only created for activities that need it
+	state := &simpleState{scope: &SharedScope{}, sharedData:make(map[activity.Activity]map[string]interface{})}
 
 	return &singelStateManager{state: state}
 }
@@ -79,7 +80,8 @@ func (p *multiStateManager) GetState(id string) State {
 	state, exist := p.states[id]
 
 	if !exist {
-		state = &simpleState{scope: &SharedScope{}}
+		//todo optimize so only created for activities that need it
+		state = &simpleState{scope: &SharedScope{}, sharedData:make(map[activity.Activity]map[string]interface{})}
 		p.states[id] = state
 	}
 
@@ -90,37 +92,43 @@ type simpleState struct {
 	scope      data.Scope
 	sharedData map[activity.Activity]map[string]interface{}
 
-	//todo optimize: share tickers closer to instance level (there could even be 1 per difinition, just multiple callbacks)
+	//todo optimize: share tickers closer to instance level (there could even be 1 per definition, just multiple callbacks)
 
 	tickers map[activity.Activity]*TickerHolder
 	timers  map[activity.Activity]*TimerHolder
+
+	mutex *sync.RWMutex
 }
 
-func (p *simpleState) GetScope() data.Scope {
-	return p.scope
+func (s *simpleState) GetScope() data.Scope {
+	return s.scope
 }
 
-func (p *simpleState) GetSharedData(act activity.Activity) map[string]interface{} {
-	// create map if it doesn't exist
-	if p.sharedData == nil {
-		p.sharedData = make(map[activity.Activity]map[string]interface{})
-	}
+func (s *simpleState) GetSharedData(act activity.Activity) map[string]interface{} {
 
-	sd, exists := p.sharedData[act]
+	s.mutex.RLock()
+	sd, exists := s.sharedData[act]
+	s.mutex.RUnlock()
+
 	if !exists {
-		sd = make(map[string]interface{})
-		p.sharedData[act] = sd
+		s.mutex.Lock()
+		sd, exists = s.sharedData[act]
+		if !exists {
+			sd = make(map[string]interface{})
+			s.sharedData[act] = sd
+		}
+		s.mutex.Unlock()
 	}
 
 	return sd
 }
 
-func (p *simpleState) NewTicker(act activity.Activity, interval time.Duration) (*TickerHolder, error) {
+func (s *simpleState) NewTicker(act activity.Activity, interval time.Duration) (*TickerHolder, error) {
 
-	if p.tickers == nil {
-		p.tickers = make(map[activity.Activity]*TickerHolder)
+	if s.tickers == nil {
+		s.tickers = make(map[activity.Activity]*TickerHolder)
 	} else {
-		_, exists := p.tickers[act]
+		_, exists := s.tickers[act]
 		if exists {
 			return nil, fmt.Errorf("multiple tickers not supported, ticker already exists for this activity")
 		}
@@ -128,44 +136,44 @@ func (p *simpleState) NewTicker(act activity.Activity, interval time.Duration) (
 
 	ticker := time.NewTicker(interval)
 	holder := &TickerHolder{mutex: &sync.RWMutex{}, ticker: ticker}
-	p.tickers[act] = holder
+	s.tickers[act] = holder
 
 	return holder, nil
 }
 
-func (p *simpleState) GetTicker(act activity.Activity) (*TickerHolder, bool) {
+func (s *simpleState) GetTicker(act activity.Activity) (*TickerHolder, bool) {
 
-	if p.tickers == nil {
+	if s.tickers == nil {
 		return nil, false
 	}
 
-	ticker, exists := p.tickers[act]
+	ticker, exists := s.tickers[act]
 
 	return ticker, exists
 }
 
-func (p *simpleState) RemoveTicker(act activity.Activity) bool {
+func (s *simpleState) RemoveTicker(act activity.Activity) bool {
 
-	if p.tickers == nil {
+	if s.tickers == nil {
 		return false
 	}
 
-	holder, exists := p.tickers[act]
+	holder, exists := s.tickers[act]
 	if exists {
 		holder.ticker.Stop()
-		delete(p.tickers, act)
+		delete(s.tickers, act)
 		return true
 	}
 
 	return false
 }
 
-func (p *simpleState) NewTimer(act activity.Activity, interval time.Duration) (*TimerHolder, error) {
+func (s *simpleState) NewTimer(act activity.Activity, interval time.Duration) (*TimerHolder, error) {
 
-	if p.timers == nil {
-		p.timers = make(map[activity.Activity]*TimerHolder)
+	if s.timers == nil {
+		s.timers = make(map[activity.Activity]*TimerHolder)
 	} else {
-		_, exists := p.tickers[act]
+		_, exists := s.tickers[act]
 		if exists {
 			return nil, fmt.Errorf("multiple timers not supported, timer already exists for this activity")
 		}
@@ -173,32 +181,32 @@ func (p *simpleState) NewTimer(act activity.Activity, interval time.Duration) (*
 
 	timer := time.NewTimer(interval)
 	holder := &TimerHolder{mutex: &sync.RWMutex{}, timer: timer}
-	p.timers[act] = holder
+	s.timers[act] = holder
 
 	return holder, nil
 }
 
-func (p *simpleState) GetTimer(act activity.Activity) (*TimerHolder, bool) {
+func (s *simpleState) GetTimer(act activity.Activity) (*TimerHolder, bool) {
 
-	if p.timers == nil {
+	if s.timers == nil {
 		return nil, false
 	}
 
-	holder, exists := p.timers[act]
+	holder, exists := s.timers[act]
 
 	return holder, exists
 }
 
-func (p *simpleState) RemoveTimer(act activity.Activity) bool {
+func (s *simpleState) RemoveTimer(act activity.Activity) bool {
 
-	if p.timers == nil {
+	if s.timers == nil {
 		return false
 	}
 
-	holder, exists := p.timers[act]
+	holder, exists := s.timers[act]
 	if exists {
 		holder.GetTimer().Stop()
-		delete(p.timers, act)
+		delete(s.timers, act)
 		return true
 	}
 
