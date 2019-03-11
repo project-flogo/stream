@@ -21,7 +21,7 @@ const (
 
 //we can generate json from this! - we could also create a "validate-able" object from this
 type Settings struct {
-	Function           string `md:"function,required,allowed(avg,sum,min,max,count)"`
+	Function           string `md:"function,required,allowed(avg,sum,min,max,count,accumulate)"`
 	WindowType         string `md:"windowType,required,allowed(tumbling,sliding,timeTumbling,timeSliding)"`
 	WindowSize         int    `md:"windowSize,required"`
 	Resolution         int    `md:"resolution"`
