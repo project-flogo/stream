@@ -75,7 +75,7 @@ The example below filters out all zero 'movement' readings
   "id": "filter1",
   "name": "Filter",
   "activity": {
-    "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/filter",
+    "ref": "github.com/project-flogo/activity/filter",
     "settings": {
       "type": "non-zero"
     },
