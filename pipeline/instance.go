@@ -159,36 +159,8 @@ func ExecuteCurrentStage(ctx *ExecutionContext) (done bool, err error) {
 	done, err = stage.act.Eval(ctx)
 
 	if done {
-		currentAttrs := ctx.currentOutput
-
 		if stage.outputMapper != nil {
-			in := &StageOutputScope{execCtx: ctx}
-			results, err := stage.outputMapper.Apply(in)
-			if err != nil {
-				return false, err
-			}
-
-			outputMd := ctx.pipeline.def.metadata.Output
-			for name, value := range results {
-				if strings.HasPrefix(name, "pipeline.") {
-					attrName := name[9:]
-					if ctx.pipelineOutput == nil {
-						ctx.pipelineOutput = make(map[string]interface{})
-					}
-					mdAttr := outputMd[attrName]
-					if mdAttr != nil {
-						ctx.pipelineOutput[attrName], err = coerce.ToType(value, mdAttr.Type())
-						if err != nil {
-							return false, err
-						}
-					} else {
-						return false, errors.New("unknown pipeline output: " + attrName)
-					}
-					//			//get the pipeline metadata
-				} else {
-					currentAttrs[name] = value
-				}
-			}
+			applyOutputMapper(ctx)
 		}
 	}
 
@@ -247,5 +219,47 @@ func ResumeCurrentStage(ctx *ExecutionContext) (done bool, err error) {
 		done, err = aact.PostEval(ctx, nil)
 	}
 
+	if done {
+		if stage.outputMapper != nil {
+			applyOutputMapper(ctx)
+		}
+	}
+
 	return done, err
+}
+
+func applyOutputMapper(ctx *ExecutionContext) error {
+
+	currentAttrs := ctx.currentOutput
+	stage := ctx.currentStage()
+
+	in := &StageOutputScope{execCtx: ctx}
+	results, err := stage.outputMapper.Apply(in)
+	if err != nil {
+		return err
+	}
+
+	outputMd := ctx.pipeline.def.metadata.Output
+	for name, value := range results {
+		if strings.HasPrefix(name, "pipeline.") {
+			attrName := name[9:]
+			if ctx.pipelineOutput == nil {
+				ctx.pipelineOutput = make(map[string]interface{})
+			}
+			mdAttr := outputMd[attrName]
+			if mdAttr != nil {
+				ctx.pipelineOutput[attrName], err = coerce.ToType(value, mdAttr.Type())
+				if err != nil {
+					return err
+				}
+			} else {
+				return errors.New("unknown pipeline output: " + attrName)
+			}
+			//get the pipeline metadata
+		} else {
+			currentAttrs[name] = value
+		}
+	}
+
+	return nil
 }
