@@ -1,11 +1,10 @@
 {
   "name": "flogo-filter",
   "type": "flogo:activity",
-  "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/filter",
   "version": "0.0.1",
   "title": "Filter",
   "description": "Simple Filter Activity",
-  "homepage": "https://github.com/TIBCOSoftware/flogo-contrib/tree/master/activity/filter",
+  "homepage": "https://github.com/project-flogo/stream/tree/master/activity/filter",
   "settings": [
     {
       "name": "type",

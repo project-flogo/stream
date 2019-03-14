@@ -36,7 +36,7 @@ func NewSimpleStateManager() StateManager {
 
 	//tickers map[activity.Activity]*time.Ticker
 	//todo optimize so only created for activities that need it
-	state := &simpleState{scope: &SharedScope{}, sharedData:make(map[activity.Activity]map[string]interface{}), mutex:&sync.RWMutex{}}
+	state := &simpleState{scope: &SharedScope{}, sharedData: make(map[activity.Activity]map[string]interface{}), mutex: &sync.RWMutex{}}
 
 	return &singelStateManager{state: state}
 }
@@ -81,7 +81,7 @@ func (p *multiStateManager) GetState(id string) State {
 
 	if !exist {
 		//todo optimize so only created for activities that need it
-		state = &simpleState{scope: &SharedScope{}, sharedData:make(map[activity.Activity]map[string]interface{}), mutex:&sync.RWMutex{}}
+		state = &simpleState{scope: &SharedScope{}, sharedData: make(map[activity.Activity]map[string]interface{}), mutex: &sync.RWMutex{}}
 		p.states[id] = state
 	}
 

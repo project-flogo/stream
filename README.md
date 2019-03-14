@@ -43,7 +43,7 @@ See the sample below of an aggregation pipeline (for brevity, the triggers and m
 ```json
   "stages": [
     {
-      "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/aggregate",
+      "ref": "github.com/project-flogo/stream/activity/aggregate",
       "settings": {
         "function": "sum",
         "windowType": "timeTumbling",
@@ -54,7 +54,7 @@ See the sample below of an aggregation pipeline (for brevity, the triggers and m
       }
     },
     {
-      "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/log",
+      "ref": "github.com/project-flogo/contrib/activity/log",
       "input": {
         "message": "=$.result"
       }
@@ -69,24 +69,21 @@ Firstly clone the repository
 Create a skeletal Flogo Application, we'll call it StreamAggregatorApp
 
 ```bash
-$ flogo create -flv github.com/TIBCOSoftware/flogo-contrib/activity/log@master,github.com/TIBCOSoftware/flogo-lib/app/resource@master StreamAggregatorApp
-
-Creating initial project structure, this might take a few seconds ...
-Warning: Gopkg.lock is out of sync with Gopkg.toml or the project's imports.
-Fetching sources...
-
-The following packages are not imported by your project, and have been temporarily added to Gopkg.lock and vendor/:
-	github.com/TIBCOSoftware/flogo-contrib/activity/log
-	github.com/TIBCOSoftware/flogo-lib/app/resource
-If you run "dep ensure" again before actually importing them, they will disappear from Gopkg.lock and vendor/.
+$ flogo create -cv master StreamAggregatorApp
 ```
 
-Now, install dependencies...
+Now, install the Flogo Stream dependencies
+
+```bash
+$ cd StreamAggregatorApp/
+$ flogo install github.com/project-flogo/stream@master
+```
+
+Now, install activities..
 
 ``` bash
-$ cd StreamAggregatorApp/
-$ flogo install github.com/TIBCOSoftware/flogo-lib/app/resource
-$ flogo install github.com/TIBCOSoftware/flogo-contrib/activity/aggregate
+$ flogo install github.com/project-flogo/stream/activity/aggregate
+$ flogo install github.com/project-flogo/contrib/activity/log
 ```
 
 Overwrite the generated flogo.json with the example...
@@ -99,13 +96,6 @@ Fixup the flogo.json so that the name attribute is correct for the Application n
 
 ```bash
 $ vi flogo.json # — Change name to “StreamAggregatorApp”
-```
-
-Now, install the Flogo Stream dependencies and then ensure everything in src is upto date with a 'flogo ensure'
-
-```bash
-flogo install github.com/project-flogo/stream
-flogo ensure -update
 ```
 
 Build it...
