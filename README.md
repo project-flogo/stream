@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img src="https://travis-ci.org/TIBCOSoftware/flogo.svg"/>
+  <img src="https://travis-ci.org/project-flogo/stream.svg?branch=master"/>
   <img src="https://img.shields.io/badge/dependencies-up%20to%20date-green.svg"/>
   <img src="https://img.shields.io/badge/license-BSD%20style-blue.svg"/>
   <a href="https://gitter.im/project-flogo/Lobby?utm_source=share-link&utm_medium=link&utm_campaign=share-link"><img src="https://badges.gitter.im/Join%20Chat.svg"/></a>
@@ -38,7 +38,7 @@ We’ve made building powerful streaming pipelines as easy as possible. Develop 
 - A simple, clean JSON-based DSL
 - Golang API
 
-See the sample below of an aggregation pipeline (for brevity, the triggers and metadata of the resource has been omitted). Also don’t forget to check out the examples in the [project-flogo/stream](https://github.com/project-flogo/stream/tree/master/examples) repo.
+See the sample below of an aggregation pipeline (for brevity, the triggers and metadata of the resource has been omitted). Also don’t forget to check out the [examples](https://github.com/project-flogo/stream/tree/master/examples) in the repo.
 
 ```json
   "stages": [
@@ -64,42 +64,29 @@ See the sample below of an aggregation pipeline (for brevity, the triggers and m
 
 ## Try out the example
 
-Firstly clone the repository
+Firstly you should install the install the [Flogo CLI](https://github.com/project-flogo/core).
+ 
+Next you should download our aggregation example [agg-flogo.json](https://github.com/project-flogo/stream/blob/master/examples/agg-flogo.json).
 
-Create a skeletal Flogo Application, we'll call it StreamAggregatorApp
-
-```bash
-$ flogo create -cv master StreamAggregatorApp
-```
-
-Now, install the Flogo Stream dependencies
+We'll create a our application using the example file, we'll call it myApp
 
 ```bash
-$ cd StreamAggregatorApp/
-$ flogo install github.com/project-flogo/stream@master
+$ flogo create -f agg-flogo.json myApp
 ```
 
-Now, install activities..
-
-``` bash
-$ flogo install github.com/project-flogo/stream/activity/aggregate
-$ flogo install github.com/project-flogo/contrib/activity/log
-```
-
-Overwrite the generated flogo.json with the example...
-
-``` bash
-$ cp ../agg-flogo.json ./flogo.json
-```
-
-Fixup the flogo.json so that the name attribute is correct for the Application name we've chosen i.e replace "stream" with "StreamAggregatorApp"
+Now, build it...
 
 ```bash
-$ vi flogo.json # — Change name to “StreamAggregatorApp”
+$ cd myApp/
+$ flogo build
 ```
 
-Build it...
+## Activities
 
-```bash
-flogo build
-```
+Flogo Stream also provides some activates to assist in stream processing.
+
+* [Aggregate](activity/aggregate/README.md) : This activity allows you to aggregate data and calculate an average or sliding average.
+* [Filter](activity/filter/README.md) : This activity allows you to filter out data in a streaming pipeline.
+
+## License 
+Flogo source code in [this](https://github.com/project-flogo/strem) repository is under a BSD-style license, refer to [LICENSE](https://github.com/project-flogo/strem/blob/master/LICENSE)
