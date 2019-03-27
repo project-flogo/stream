@@ -17,6 +17,8 @@ const (
 
 	ovResult = "result"
 	ovReport = "report"
+
+	sdWindow = "window"
 )
 
 //we can generate json from this! - we could also create a "validate-able" object from this
@@ -39,7 +41,7 @@ type Output struct {
 }
 
 func init() {
-	activity.Register(&Activity{}, New)
+	_ = activity.Register(&Activity{}, New)
 }
 
 var activityMd = activity.ToMetadata(&Settings{}, &Input{}, &Output{})
@@ -82,7 +84,7 @@ func (a *Activity) Metadata() *activity.Metadata {
 func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 
 	sharedData := ctx.GetSharedTempData()
-	wv, defined := sharedData["window"]
+	wv, defined := sharedData[sdWindow]
 
 	timerSupport, timerSupported := support.GetTimerSupport(ctx)
 
@@ -94,7 +96,7 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 
 		a.mutex.Lock()
 
-		wv, defined = sharedData["window"]
+		wv, defined = sharedData[sdWindow]
 		if defined {
 			w = wv.(window.Window)
 		} else {
@@ -105,7 +107,7 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 				return false, err
 			}
 
-			sharedData["window"] = w
+			sharedData[sdWindow] = w
 		}
 
 		a.mutex.Unlock()
@@ -121,8 +123,15 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 		timerSupport.UpdateTimer(true)
 	}
 
-	ctx.SetOutput(ovResult, result)
-	ctx.SetOutput(ovReport, emit)
+	err = ctx.SetOutput(ovResult, result)
+	if err != nil {
+		return false, err
+	}
+
+	err = ctx.SetOutput(ovReport, emit)
+	if err != nil {
+		return false, err
+	}
 
 	done = !(a.settings.ProceedOnlyOnEmit && !emit)
 
@@ -135,7 +144,10 @@ func (a *Activity) createWindow(ctx activity.Context) (w window.Window, err erro
 	timerSupport, timerSupported := support.GetTimerSupport(ctx)
 
 	windowSettings := &window.Settings{Size: settings.WindowSize, ExternalTimer: timerSupported, Resolution: settings.Resolution}
-	windowSettings.SetAdditionalSettings(a.additionalSettings)
+	err = windowSettings.SetAdditionalSettings(a.additionalSettings)
+	if err != nil {
+		return nil, err
+	}
 
 	wType := strings.ToLower(settings.WindowType)
 
@@ -146,13 +158,13 @@ func (a *Activity) createWindow(ctx activity.Context) (w window.Window, err erro
 		w, err = NewSlidingWindow(settings.Function, windowSettings)
 	case "timetumbling":
 		w, err = NewTumblingTimeWindow(settings.Function, windowSettings)
-		if timerSupported {
-			timerSupport.CreateTimer(time.Duration(settings.WindowSize)*time.Millisecond, a.moveWindow, true)
+		if err != nil && timerSupported {
+			err = timerSupport.CreateTimer(time.Duration(settings.WindowSize)*time.Millisecond, a.moveWindow, true)
 		}
 	case "timesliding":
 		w, err = NewSlidingTimeWindow(settings.Function, windowSettings)
-		if timerSupported {
-			timerSupport.CreateTimer(time.Duration(settings.Resolution)*time.Millisecond, a.moveWindow, true)
+		if  err != nil && timerSupported {
+			err = timerSupport.CreateTimer(time.Duration(settings.Resolution)*time.Millisecond, a.moveWindow, true)
 		}
 	default:
 		return nil, fmt.Errorf("unsupported window type: '%s'", settings.WindowType)
@@ -169,14 +181,21 @@ func (a *Activity) moveWindow(ctx activity.Context) bool {
 
 	sharedData := ctx.GetSharedTempData()
 
-	wv, _ := sharedData["window"]
+	wv, _ := sharedData[sdWindow]
 
 	w, _ := wv.(window.TimeWindow)
 
 	emit, result := w.NextBlock()
 
-	ctx.SetOutput(ovResult, result)
-	ctx.SetOutput(ovReport, emit)
+	err := ctx.SetOutput(ovResult, result)
+	if err != nil {
+		//todo log error?
+	}
+
+	err = ctx.SetOutput(ovReport, emit)
+	if err != nil {
+		//todo log error?
+	}
 
 	return !(a.settings.ProceedOnlyOnEmit && !emit)
 }
