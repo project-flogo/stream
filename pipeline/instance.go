@@ -262,6 +262,12 @@ func applyOutputMapper(ctx *ExecutionContext) error {
 				return errors.New("unknown pipeline output: " + attrName)
 			}
 			//get the pipeline metadata
+		} else if strings.HasPrefix(name, "passthru.") {
+			attrName := name[9:]
+			if ctx.passThru == nil {
+				ctx.passThru = make(map[string]interface{})
+			}
+			ctx.passThru[attrName] = value
 		} else {
 			currentAttrs[name] = value
 		}
