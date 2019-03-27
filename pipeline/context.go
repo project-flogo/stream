@@ -61,6 +61,7 @@ type ExecutionContext struct {
 
 	pipelineInput  map[string]interface{}
 	pipelineOutput map[string]interface{}
+	passThru       map[string]interface{}
 
 	currentInput  map[string]interface{}
 	currentOutput map[string]interface{}

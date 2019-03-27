@@ -112,6 +112,8 @@ func (s *StageInputScope) GetValueByScope(scope string, name string) (value inte
 
 	if scope == "pipeline" {
 		attrs = s.execCtx.pipelineInput
+	} else if scope == "passthru" {
+		attrs = s.execCtx.passThru
 	}
 
 	attr, found := attrs[name]
@@ -150,6 +152,8 @@ func (s *StageOutputScope) GetValueByScope(scope string, name string) (value int
 	switch scope {
 	case "pipeline":
 		attrs = s.execCtx.pipelineInput
+	case "passthru":
+		attrs = s.execCtx.passThru
 	case "input":
 		attrs = s.execCtx.currentInput
 	}

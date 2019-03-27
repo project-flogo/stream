@@ -12,7 +12,8 @@ var pipelineRes = resolve.NewCompositeResolver(map[string]resolve.Resolver{
 	"env":      &resolve.EnvResolver{},
 	"property": &resolve.PropertyResolver{},
 	"input":    &InputResolver{},
-	"pipeline": &PipelineResolver{}})
+	"pipeline": &MultiScopeResolver{scopeName:"pipeline"},
+	"passthru": &MultiScopeResolver{scopeName:"passthru"}})
 
 func GetDataResolver() resolve.CompositeResolver {
 	return pipelineRes
@@ -20,22 +21,23 @@ func GetDataResolver() resolve.CompositeResolver {
 
 var resolverInfo = resolve.NewResolverInfo(false, false)
 
-type PipelineResolver struct {
+type MultiScopeResolver struct {
+	scopeName string
 }
 
-func (r *PipelineResolver) GetResolverInfo() *resolve.ResolverInfo {
+func (r *MultiScopeResolver) GetResolverInfo() *resolve.ResolverInfo {
 	return resolverInfo
 }
 
-func (r *PipelineResolver) Resolve(scope data.Scope, itemName, valueName string) (interface{}, error) {
+func (r *MultiScopeResolver) Resolve(scope data.Scope, itemName, valueName string) (interface{}, error) {
 
 	var value interface{}
 	if ms, ok := scope.(MultiScope); ok {
 
 		var exists bool
-		value, exists = ms.GetValueByScope("pipeline", valueName)
+		value, exists = ms.GetValueByScope(r.scopeName, valueName)
 		if !exists {
-			return nil, fmt.Errorf("failed to resolve attr: '%s', not found in pipeline", valueName)
+			return nil, fmt.Errorf("failed to resolve attr: '%s', not found in %s", valueName, r.scopeName)
 		}
 	}
 
