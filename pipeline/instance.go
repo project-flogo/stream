@@ -160,7 +160,10 @@ func ExecuteCurrentStage(ctx *ExecutionContext) (done bool, err error) {
 
 	if done {
 		if stage.outputMapper != nil {
-			applyOutputMapper(ctx)
+			err := applyOutputMapper(ctx)
+			if err != nil {
+				return false, err
+			}
 		}
 	}
 
@@ -221,7 +224,10 @@ func ResumeCurrentStage(ctx *ExecutionContext) (done bool, err error) {
 
 	if done {
 		if stage.outputMapper != nil {
-			applyOutputMapper(ctx)
+			err := applyOutputMapper(ctx)
+			if err != nil {
+				return false, err
+			}
 		}
 	}
 
