@@ -83,7 +83,7 @@ $ flogo build
 
 ## Activities
 
-Flogo Stream also provides some activates to assist in stream processing.
+Flogo Stream also provides some activities to assist in stream processing.
 
 * [Aggregate](activity/aggregate/README.md) : This activity allows you to aggregate data and calculate an average or sliding average.
 * [Filter](activity/filter/README.md) : This activity allows you to filter out data in a streaming pipeline.
