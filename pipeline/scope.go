@@ -19,7 +19,7 @@ var scopeNames = [...]string{
 	"default",
 	"pipeline",
 	"passthru",
-	}
+}
 
 func (t ScopeId) String() string {
 	return scopeNames[t]

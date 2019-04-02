@@ -29,7 +29,7 @@ type Output struct {
 }
 
 func init() {
-	activity.Register(&Activity{}, New)
+	_ = activity.Register(&Activity{}, New)
 }
 
 var activityMd = activity.ToMetadata(&Settings{}, &Input{}, &Output{})
@@ -77,8 +77,14 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 
 	done = !(proceedOnlyOnEmit && filteredOut)
 
-	ctx.SetOutput(ovFiltered, filteredOut)
-	ctx.SetOutput(ovValue, in)
+	err = ctx.SetOutput(ovFiltered, filteredOut)
+	if err != nil {
+		return false, err
+	}
+	err = ctx.SetOutput(ovValue, in)
+	if err != nil {
+		return false, err
+	}
 
 	return done, nil
 }

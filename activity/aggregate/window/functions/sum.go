@@ -27,8 +27,8 @@ func AddSampleSum(a, b interface{}) interface{} {
 		return x
 	}
 
-	//todo handle errror
-	panic("invalid input")
+	//todo handle error
+	//panic("invalid input")
 }
 
 func AggregateBlocksSum(blocks []interface{}, start int, size int) interface{} {

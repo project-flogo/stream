@@ -11,8 +11,8 @@ var pipelineRes = resolve.NewCompositeResolver(map[string]resolve.Resolver{
 	".":        &resolve.ScopeResolver{},
 	"env":      &resolve.EnvResolver{},
 	"property": &resolve.PropertyResolver{},
-	"pipeline": &MultiScopeResolver{scopeId:ScopePipeline},
-	"passthru": &MultiScopeResolver{scopeId:ScopePassthru}})
+	"pipeline": &MultiScopeResolver{scopeId: ScopePipeline},
+	"passthru": &MultiScopeResolver{scopeId: ScopePassthru}})
 
 func GetDataResolver() resolve.CompositeResolver {
 	return pipelineRes

@@ -50,7 +50,7 @@ func (ctx *initContextImpl) Logger() log.Logger {
 func NewStage(config *StageConfig, mf mapper.Factory, resolver resolve.CompositeResolver) (*Stage, error) {
 
 	if config.Ref == "" {
-		return nil, fmt.Errorf("Activity not specified for Stage")
+		return nil, fmt.Errorf("activity not specified for stage")
 	}
 
 	act := activity.Get(config.Ref)

@@ -47,13 +47,16 @@ func TestActionFactory_New(t *testing.T) {
 	af := ActionFactory{}
 	ctx := test.NewActionInitCtx()
 
-	af.Initialize(ctx)
+	err = af.Initialize(ctx)
+	assert.Nil(t, err)
 
 	resourceCfg := &resource.Config{ID: "pipeline:test"}
 	resourceCfg.Data = []byte(resData)
-	ctx.AddResource(pipeline.RESTYPE, resourceCfg)
+	err = ctx.AddResource(pipeline.ResType, resourceCfg)
+	assert.Nil(t, err)
 
-	channels.New("testChan", 5)
+	_, err = channels.New("testChan", 5)
+	assert.Nil(t, err)
 
 	act, err := af.New(cfg)
 	assert.Nil(t, err)

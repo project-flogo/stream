@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	RESTYPE = "pipeline"
+	ResType = "pipeline"
 )
 
 func NewResourceLoader(mapperFactory mapper.Factory, resolver resolve.CompositeResolver) resource.Loader {
@@ -39,5 +39,5 @@ func (rl *ResourceLoader) LoadResource(config *resource.Config) (*resource.Resou
 		return nil, err
 	}
 
-	return resource.New(RESTYPE, pDef), nil
+	return resource.New(ResType, pDef), nil
 }

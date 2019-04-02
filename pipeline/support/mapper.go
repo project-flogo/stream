@@ -7,7 +7,6 @@ import (
 	"github.com/project-flogo/core/data/resolve"
 )
 
-
 type ExprMapperFactory struct {
 	exprFactory   expression.Factory
 	objectFactory expression.Factory
@@ -74,7 +73,6 @@ func (m *OverrideExprMapper) Apply(inputScope data.Scope) (map[string]interface{
 			//todo add some context to error (consider adding String() to exprImpl)
 			return nil, err
 		}
-
 
 		output[key] = val
 	}
