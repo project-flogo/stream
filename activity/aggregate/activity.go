@@ -163,7 +163,7 @@ func (a *Activity) createWindow(ctx activity.Context) (w window.Window, err erro
 		}
 	case "timesliding":
 		w, err = NewSlidingTimeWindow(settings.Function, windowSettings)
-		if  err != nil && timerSupported {
+		if err != nil && timerSupported {
 			err = timerSupport.CreateTimer(time.Duration(settings.Resolution)*time.Millisecond, a.moveWindow, true)
 		}
 	default:

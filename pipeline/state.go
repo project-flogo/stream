@@ -38,14 +38,14 @@ func NewSimpleStateManager() StateManager {
 	//todo optimize so only created for activities that need it
 	state := &simpleState{scope: &SharedScope{}, sharedData: make(map[activity.Activity]map[string]interface{}), mutex: &sync.RWMutex{}}
 
-	return &singelStateManager{state: state}
+	return &singleStateManager{state: state}
 }
 
-type singelStateManager struct {
+type singleStateManager struct {
 	state State
 }
 
-func (p *singelStateManager) GetState(id string) State {
+func (p *singleStateManager) GetState(id string) State {
 	return p.state
 }
 

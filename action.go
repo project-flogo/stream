@@ -17,7 +17,7 @@ import (
 )
 
 func init() {
-	action.Register(&StreamAction{}, &ActionFactory{})
+	_ = action.Register(&StreamAction{}, &ActionFactory{})
 }
 
 var manager *pipeline.Manager
@@ -47,9 +47,8 @@ func (f *ActionFactory) Initialize(ctx action.InitContext) error {
 	mapperFactory := mapper.NewFactory(pipeline.GetDataResolver())
 
 	manager = pipeline.NewManager()
-	resource.RegisterLoader(pipeline.RESTYPE, pipeline.NewResourceLoader(mapperFactory, pipeline.GetDataResolver()))
-
-	return nil
+	err := resource.RegisterLoader(pipeline.ResType, pipeline.NewResourceLoader(mapperFactory, pipeline.GetDataResolver()))
+	return err
 }
 
 func (f *ActionFactory) New(config *action.Config) (action.Action, error) {
@@ -108,7 +107,7 @@ func (f *ActionFactory) New(config *action.Config) (action.Action, error) {
 	instLogger := logger
 
 	if log.CtxLoggingEnabled() {
-		instLogger = log.ChildLoggerWithFields(logger, log.String("pipelineName", streamAction.definition.Name()), log.String("pipelineId", instId))
+		instLogger = log.ChildLoggerWithFields(logger, log.FieldString("pipelineName", streamAction.definition.Name()), log.FieldString("pipelineId", instId))
 	}
 
 	//note: single pipeline instance for the moment

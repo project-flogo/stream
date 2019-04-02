@@ -259,7 +259,7 @@ func (eCtx *ExecutionContext) CreateTimer(interval time.Duration, callback suppo
 
 	logger := log.RootLogger()
 
-	//todo add "clone ctx flag, incase exec context isn't discarded)
+	//todo add "clone ctx flag, in case exec context isn't discarded)
 	//discriminator := eCtx.discriminator
 	//inst := eCtx.pipeline
 	//stageId := eCtx.stageId
@@ -294,7 +294,10 @@ func (eCtx *ExecutionContext) CreateTimer(interval time.Duration, callback suppo
 					resume := invokeCallback(callback, newCtx)
 					//resume := callback(newCtx)
 					if resume {
-						Resume(newCtx)
+						err := Resume(newCtx)
+						if err != nil {
+							logger.Errorf("Unable to resume pipeline: %v", err)
+						}
 					}
 				} else {
 					if logger.DebugEnabled() {
@@ -329,7 +332,10 @@ func (eCtx *ExecutionContext) CreateTimer(interval time.Duration, callback suppo
 			resume := invokeCallback(callback, newCtx)
 			//resume := callback(newCtx)
 			if resume {
-				Resume(newCtx)
+				err = Resume(newCtx)
+				if err != nil {
+					logger.Errorf("Unable to resume pipeline: %v", err)
+				}
 			}
 		}()
 	}
