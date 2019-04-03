@@ -3,8 +3,6 @@ package pipeline
 import (
 	"errors"
 	"sync"
-
-	"github.com/project-flogo/core/data"
 )
 
 type ScopeId int
@@ -67,36 +65,6 @@ func (s *SharedScope) SetValue(name string, value interface{}) error {
 	return nil
 }
 
-// SimpleScope is a basic implementation of a scope
-type SimpleScope struct {
-	parentScope data.Scope
-	attrs       map[string]interface{}
-}
-
-// NewSimpleScope creates a new SimpleScope
-func NewSimpleScope(attrs map[string]interface{}, parentScope data.Scope) data.Scope {
-
-	return &SimpleScope{attrs: attrs, parentScope: parentScope}
-}
-
-func (s *SimpleScope) GetValue(name string) (value interface{}, exists bool) {
-	attr, found := s.attrs[name]
-
-	if found {
-		return attr, true
-	}
-
-	if s.parentScope != nil {
-		return s.parentScope.GetValue(name)
-	}
-
-	return nil, false
-}
-
-func (s *SimpleScope) SetValue(name string, value interface{}) error {
-	s.attrs[name] = value
-	return nil
-}
 
 // SimpleScope is a basic implementation of a scope
 type StageInputScope struct {
