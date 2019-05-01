@@ -1,9 +1,12 @@
 package pipeline
 
 import (
+	"github.com/project-flogo/core/activity"
 	"github.com/project-flogo/core/data/mapper"
 	"github.com/project-flogo/core/data/metadata"
 	"github.com/project-flogo/core/data/resolve"
+	"github.com/project-flogo/core/support"
+	"github.com/project-flogo/core/support/log"
 )
 
 type DefinitionConfig struct {
@@ -42,4 +45,19 @@ func (d *Definition) Metadata() *metadata.IOMetadata {
 
 func (d *Definition) Name() string {
 	return d.name
+}
+
+func (d *Definition) Cleanup() error {
+	for _, stage := range d.stages {
+		if !activity.IsSingleton(stage.act) {
+			if needsCleanup, ok := stage.act.(support.NeedsCleanup); ok {
+				err := needsCleanup.Cleanup()
+				if err != nil {
+					log.RootLogger().Warnf("Error cleaning up activity '%s' in pipeline '%s' : ", activity.GetRef(stage.act), d.name, err)
+				}
+			}
+		}
+	}
+
+	return nil
 }
