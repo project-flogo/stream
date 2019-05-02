@@ -158,12 +158,12 @@ func (a *Activity) createWindow(ctx activity.Context) (w window.Window, err erro
 		w, err = NewSlidingWindow(settings.Function, windowSettings)
 	case "timetumbling":
 		w, err = NewTumblingTimeWindow(settings.Function, windowSettings)
-		if err != nil && timerSupported {
+		if err == nil && timerSupported {
 			err = timerSupport.CreateTimer(time.Duration(settings.WindowSize)*time.Millisecond, a.moveWindow, true)
 		}
 	case "timesliding":
 		w, err = NewSlidingTimeWindow(settings.Function, windowSettings)
-		if err != nil && timerSupported {
+		if err == nil && timerSupported {
 			err = timerSupport.CreateTimer(time.Duration(settings.Resolution)*time.Millisecond, a.moveWindow, true)
 		}
 	default:
