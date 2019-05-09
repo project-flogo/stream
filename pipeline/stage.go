@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"fmt"
+	"github.com/project-flogo/core/support"
 
 	"github.com/project-flogo/core/activity"
 	"github.com/project-flogo/core/data/mapper"
@@ -49,8 +50,22 @@ func (ctx *initContextImpl) Logger() log.Logger {
 
 func NewStage(config *StageConfig, mf mapper.Factory, resolver resolve.CompositeResolver) (*Stage, error) {
 
+	if config.Ref == "" && config.Type != "" {
+		log.RootLogger().Warnf("stage configuration 'type' deprecated, use 'ref' in the future")
+		config.Ref = "#" + config.Type
+	}
+
 	if config.Ref == "" {
 		return nil, fmt.Errorf("activity not specified for stage")
+	}
+
+	if config.Ref[0] == '#' {
+		var ok bool
+		activityRef := config.Ref
+		config.Ref, ok = support.GetAliasRef("activity", activityRef)
+		if !ok {
+			return nil, fmt.Errorf("activity '%s' not imported", activityRef)
+		}
 	}
 
 	act := activity.Get(config.Ref)
