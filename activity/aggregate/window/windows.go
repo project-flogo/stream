@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/project-flogo/core/data/coerce"
 )
 
 type Settings struct {
@@ -14,14 +16,22 @@ type Settings struct {
 	ExternalTimer bool
 
 	TotalCountModifier int
+
+	NameKey  string
+	ValueKey string
 }
 
 func (s *Settings) SetAdditionalSettings(as map[string]string) error {
 
 	for key, value := range as {
-		if strings.ToLower(key) == "totalcountmodifier" {
-			//todo should we return an error?
+
+		switch strings.ToLower(key) {
+		case "totalcountmodifier":
 			s.TotalCountModifier, _ = strconv.Atoi(value)
+		case "namekey":
+			s.NameKey = value
+		case "valuekey":
+			s.ValueKey = value
 		}
 	}
 
@@ -33,7 +43,13 @@ func (s *Settings) SetAdditionalSettings(as map[string]string) error {
 
 func NewTumblingWindow(addFunc AddSampleFunc, aggFunc AggregateSingleFunc, settings *Settings) Window {
 
-	return &TumblingWindow{addFunc: addFunc, aggFunc: aggFunc, settings: settings, mutex: &sync.Mutex{}}
+	w := &TumblingWindow{addFunc: addFunc, aggFunc: aggFunc, settings: settings, mutex: &sync.Mutex{}}
+
+	if settings.NameKey != "" {
+		w.dataMap = newDataMap(settings.NameKey, settings.ValueKey, addFunc, aggFunc)
+	}
+
+	return w
 }
 
 //note:  using interface{} 4x slower than using specific types, starting with interface{} for expediency
@@ -45,6 +61,8 @@ type TumblingWindow struct {
 	data       interface{}
 	numSamples int
 
+	dataMap *MapData
+
 	mutex *sync.Mutex
 }
 
@@ -53,6 +71,24 @@ func (w *TumblingWindow) AddSample(sample interface{}) (bool, interface{}) {
 
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
+
+	if w.dataMap != nil {
+
+		w.dataMap.addSample(sample)
+		w.numSamples++
+
+		if w.numSamples == w.settings.Size {
+			w.numSamples = 0
+			return true, w.dataMap.extractData()
+		}
+
+		return false, nil
+	}
+
+	if s, ok := sample.(string); ok {
+		sample, _ = coerce.ToFloat64(s)
+		//warn
+	}
 
 	//sample size should match data size
 	w.data = w.addFunc(w.data, sample)
@@ -75,7 +111,13 @@ func (w *TumblingWindow) AddSample(sample interface{}) (bool, interface{}) {
 // Tumbling Time Window
 
 func NewTumblingTimeWindow(addFunc AddSampleFunc, aggFunc AggregateSingleFunc, settings *Settings) TimeWindow {
-	return &TumblingTimeWindow{addFunc: addFunc, aggFunc: aggFunc, settings: settings, mutex: &sync.Mutex{}}
+	w := &TumblingTimeWindow{addFunc: addFunc, aggFunc: aggFunc, settings: settings, mutex: &sync.Mutex{}}
+
+	if settings.NameKey != "" {
+		w.dataMap = newDataMap(settings.NameKey, settings.ValueKey, addFunc, aggFunc)
+	}
+
+	return w
 }
 
 // TumblingTimeWindow - A tumbling window based on time. Relies on external entity moving window along
@@ -94,13 +136,25 @@ type TumblingTimeWindow struct {
 	lastAdd  int
 
 	mutex *sync.Mutex
+
+	dataMap *MapData
 }
 
 func (w *TumblingTimeWindow) AddSample(sample interface{}) (bool, interface{}) {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
 
-	w.data = w.addFunc(w.data, sample)
+	if w.dataMap != nil {
+		w.dataMap.addSample(sample)
+	} else {
+		if s, ok := sample.(string); ok {
+			sample, _ = coerce.ToFloat64(s)
+			//warn
+		}
+
+		w.data = w.addFunc(w.data, sample)
+	}
+
 	w.numSamples++
 
 	if w.numSamples > w.maxSamples {
@@ -129,11 +183,17 @@ func (w *TumblingTimeWindow) NextBlock() (bool, interface{}) {
 
 func (w *TumblingTimeWindow) nextBlock() (bool, interface{}) {
 
-	// aggregate and emit
-	val := w.aggFunc(w.data, w.maxSamples) //num samples or max samples?
+	var val interface{}
+
+	if w.dataMap != nil {
+		val = w.dataMap.extractData()
+	} else {
+		// aggregate and emit
+		val = w.aggFunc(w.data, w.maxSamples) //num samples or max samples?
+		w.data, _ = zero(w.data)
+	}
 
 	w.numSamples = 0
-	w.data, _ = zero(w.data)
 
 	if w.settings.TotalCountModifier > 0 {
 		//local, so reset max samples
@@ -152,6 +212,11 @@ func NewSlidingWindow(aggFunc AggregateBlocksFunc, settings *Settings) Window {
 	w := &SlidingWindow{aggFunc: aggFunc, settings: settings}
 	w.blocks = make([]interface{}, settings.Size)
 	w.mutex = &sync.Mutex{}
+
+	if settings.NameKey != "" {
+		//todo return error
+		return nil
+	}
 
 	return w
 }
@@ -176,6 +241,11 @@ func (w *SlidingWindow) AddSample(sample interface{}) (bool, interface{}) {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
 
+	if s, ok := sample.(string); ok {
+		sample, _ = coerce.ToFloat64(s)
+		//warn
+	}
+
 	//sample size should match data size
 	w.blocks[w.currentBlock] = sample //no addSampleFunc required, just tracking all values
 
@@ -189,7 +259,6 @@ func (w *SlidingWindow) AddSample(sample interface{}) (bool, interface{}) {
 
 	if w.canEmit && w.numSamples >= w.settings.Resolution {
 
-		// aggregate and emit
 		val := w.aggFunc(w.blocks, w.currentBlock, 1)
 
 		w.numSamples = 0
@@ -217,6 +286,10 @@ func NewSlidingTimeWindow(addFunc AddSampleFunc, aggFunc AggregateBlocksFunc, se
 	w.blocks = make([]interface{}, numBlocks)
 	w.mutex = &sync.Mutex{}
 
+	if settings.NameKey != "" {
+		w.dataMap = newBlockMapData(settings.NameKey, settings.ValueKey, numBlocks, addFunc, aggFunc)
+	}
+
 	return w
 }
 
@@ -239,6 +312,8 @@ type SlidingTimeWindow struct {
 	lastAdd       int
 
 	mutex *sync.Mutex
+
+	dataMap *BlockMapData
 }
 
 // AddSample implements window.Window.AddSample
@@ -247,8 +322,16 @@ func (w *SlidingTimeWindow) AddSample(sample interface{}) (bool, interface{}) {
 	w.mutex.Lock()
 	defer w.mutex.Lock()
 
-	//sample size should match data size
-	w.blocks[w.currentBlock] = w.addFunc(w.blocks[w.currentBlock], sample)
+	if w.dataMap != nil {
+		w.dataMap.addBlockSample(w.currentBlock, sample)
+	} else {
+		if s, ok := sample.(string); ok {
+			sample, _ = coerce.ToFloat64(s)
+			//warn
+		}
+		//sample size should match data size
+		w.blocks[w.currentBlock] = w.addFunc(w.blocks[w.currentBlock], sample)
+	}
 
 	w.numSamples++
 
@@ -292,7 +375,14 @@ func (w *SlidingTimeWindow) nextBlock() (bool, interface{}) {
 	if w.canEmit {
 
 		// aggregate and emit
-		val := w.aggFunc(w.blocks, w.currentBlock, w.maxSamples)
+
+		var val interface{}
+
+		if w.dataMap != nil {
+			val = w.dataMap.extractData(w.currentBlock)
+		} else {
+			val = w.aggFunc(w.blocks, w.currentBlock, w.maxSamples)
+		}
 
 		w.currentBlock = w.currentBlock % w.numBlocks
 		w.blocks[w.currentBlock], _ = zero(w.blocks[w.currentBlock])
@@ -330,4 +420,142 @@ func getTimeMillis() int {
 	now := time.Now()
 	nano := now.Nanosecond()
 	return nano / 1000000
+}
+
+func newDataMap(nameKey, valueKey string, addFunc AddSampleFunc, aggFunc AggregateSingleFunc) *MapData {
+	return &MapData{nameKey: nameKey, valueKey: valueKey, addFunc: addFunc, aggFunc: aggFunc, dataMap: make(map[string]*DataInfo)}
+}
+
+type MapData struct {
+	nameKey  string
+	valueKey string
+	addFunc  AddSampleFunc
+	aggFunc  AggregateSingleFunc
+
+	dataMap map[string]*DataInfo
+}
+
+type DataInfo struct {
+	count int
+	value interface{}
+}
+
+func (md *MapData) addSample(sample interface{}) {
+
+	mSample, ok := sample.(map[string]interface{})
+	if !ok {
+		//log and exist?
+		return
+	}
+
+	key, _ := coerce.ToString(mSample[md.nameKey])
+	info := md.dataMap[key]
+	if info == nil {
+		info = &DataInfo{}
+		md.dataMap[key] = info
+	}
+
+	val := mSample[md.valueKey]
+
+	if s, ok := val.(string); ok {
+		val, _ = coerce.ToFloat64(s)
+		//warn
+	}
+
+	info.count = info.count + 1
+	info.value = md.addFunc(info.value, val)
+}
+
+func (md *MapData) extractData() map[string]interface{} {
+
+	retMap := make(map[string]interface{}, len(md.dataMap))
+	for key, info := range md.dataMap {
+		retMap[key] = md.aggFunc(info.value, info.count)
+	}
+
+	md.dataMap = make(map[string]*DataInfo) //zero map
+
+	return retMap
+}
+
+func newBlockMapData(nameKey, valueKey string, numBlocks int, addFunc AddSampleFunc, aggFunc AggregateBlocksFunc) *BlockMapData {
+	return &BlockMapData{nameKey: nameKey, valueKey: valueKey, numBlocks: numBlocks, addFunc: addFunc, aggFunc: aggFunc, dataMap: make(map[string][]*BlockInfo)}
+}
+
+type BlockMapData struct {
+	nameKey   string
+	valueKey  string
+	numBlocks int
+	dataMap   map[string][]*BlockInfo
+
+	addFunc AddSampleFunc
+	aggFunc AggregateBlocksFunc
+}
+
+type BlockInfo struct {
+	count int
+	value interface{}
+}
+
+func (md *BlockMapData) addBlockSample(blockId int, sample interface{}) {
+
+	mSample, ok := sample.(map[string]interface{})
+	if !ok {
+		//log and exist?
+		return
+	}
+
+	key, _ := coerce.ToString(mSample[md.nameKey])
+	blocks := md.dataMap[key]
+	if blocks == nil {
+		blocks = make([]*BlockInfo, md.numBlocks)
+		md.dataMap[key] = blocks
+	}
+
+	block := blocks[blockId]
+	if block == nil {
+		block = &BlockInfo{}
+		blocks[blockId] = block
+	}
+
+	val := mSample[md.valueKey]
+
+	if s, ok := val.(string); ok {
+		val, _ = coerce.ToFloat64(s)
+		//warn
+	}
+
+	block.value = md.addFunc(block.value, val)
+	block.count = block.count + 1
+}
+
+func (md *BlockMapData) extractData(blockId int) map[string]interface{} {
+
+	retMap := make(map[string]interface{}, len(md.dataMap))
+	for key, blockInfos := range md.dataMap {
+
+		blocks := make([]interface{}, len(blockInfos))
+		for id, block := range blockInfos {
+			blocks[id] = block.value
+		}
+
+		id := blockId
+		count := blockInfos[blockId].count
+
+		if md.addFunc == nil {
+			id = 0
+			count = 1
+		}
+
+		retMap[key] = md.aggFunc(blocks, id, count)
+	}
+
+	blockId = blockId % md.numBlocks
+
+	// zero blocks
+	for _, blockInfos := range md.dataMap {
+		blockInfos[blockId] = nil
+	}
+
+	return retMap
 }
