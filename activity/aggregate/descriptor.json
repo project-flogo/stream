@@ -1,7 +1,7 @@
 {
   "name": "flogo-aggregate",
   "type": "flogo:activity",
-  "version": "0.0.1",
+  "version": "0.2.0",
   "title": "Aggregate",
   "description": "Simple Aggregate Activity",
   "homepage": "https://github.com/project-flogo/stream/tree/master/activity/aggregate",
