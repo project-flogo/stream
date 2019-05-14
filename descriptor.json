@@ -1,7 +1,7 @@
 {
   "name": "stream",
   "type": "flogo:action",
-  "version": "0.0.1",
+  "version": "0.2.0",
   "title": "Flogo Stream",
   "description": "Simple Stream Action",
   "homepage": "https://github.com/project-flogo/stream/tree/master",
