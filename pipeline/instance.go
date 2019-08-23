@@ -3,7 +3,9 @@ package pipeline
 import (
 	"errors"
 	"fmt"
+	"github.com/project-flogo/stream/pipeline/support"
 	"runtime/debug"
+	"strconv"
 	"strings"
 
 	"github.com/project-flogo/core/activity"
@@ -52,6 +54,10 @@ func (inst *Instance) Run(discriminator string, input map[string]interface{}) (o
 	//pipeline - current output is the input to the next stage
 	ctx.currentOutput = input
 
+	if t := support.GetTelemetryService(); t != nil {
+		t.PipelineStarted(inst.id, input)
+	}
+
 	for hasWork {
 
 		hasWork, err = inst.DoStep(ctx, false)
@@ -61,6 +67,10 @@ func (inst *Instance) Run(discriminator string, input map[string]interface{}) (o
 	}
 
 	if ctx.status == ExecStatusCompleted {
+		if t := support.GetTelemetryService(); t != nil {
+			t.PipelineFinished(inst.id, ctx.pipelineOutput)
+		}
+
 		return ctx.pipelineOutput, ctx.status, nil
 	}
 
@@ -77,12 +87,20 @@ func (inst *Instance) DoStep(ctx *ExecutionContext, resume bool) (hasWork bool, 
 
 	if ctx.stageId < len(inst.def.stages) {
 
+		if t := support.GetTelemetryService(); t != nil {
+			t.StageStarted(inst.id, strconv.Itoa(ctx.stageId), ctx.currentInput)
+		}
+
 		//get the stage to work on
 		done := false
 		if resume {
 			done, err = ResumeCurrentStage(ctx)
 		} else {
 			done, err = ExecuteCurrentStage(ctx)
+		}
+
+		if t := support.GetTelemetryService(); t != nil {
+			t.StageFinished(inst.id, strconv.Itoa(ctx.stageId), ctx.currentOutput)
 		}
 
 		if err != nil {

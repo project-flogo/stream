@@ -12,8 +12,11 @@ import (
 	"github.com/project-flogo/core/data/mapper"
 	"github.com/project-flogo/core/data/metadata"
 	"github.com/project-flogo/core/engine/channels"
+	"github.com/project-flogo/core/support"
 	"github.com/project-flogo/core/support/log"
 	"github.com/project-flogo/stream/pipeline"
+
+	ss "github.com/project-flogo/stream/pipeline/support"
 )
 
 func init() {
@@ -42,6 +45,18 @@ func (f *ActionFactory) Initialize(ctx action.InitContext) error {
 
 	if manager != nil {
 		return nil
+	}
+
+	ts := ss.GetTelemetryService()
+
+	if ts != nil {
+		if tsm, ok := ts.(support.Service); ok {
+			sm := support.GetDefaultServiceManager()
+			err := sm.RegisterService(tsm)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	mapperFactory := mapper.NewFactory(pipeline.GetDataResolver())
