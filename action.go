@@ -26,6 +26,7 @@ func init() {
 var manager *pipeline.Manager
 var actionMd = action.ToMetadata(&Settings{})
 var logger log.Logger
+var idGenerator *support.Generator
 
 type Settings struct {
 	PipelineURI   string `md:"pipelineURI,required"`
@@ -60,6 +61,10 @@ func (f *ActionFactory) Initialize(ctx action.InitContext) error {
 	}
 
 	mapperFactory := mapper.NewFactory(pipeline.GetDataResolver())
+
+	if idGenerator == nil {
+		idGenerator, _ = support.NewGenerator()
+	}
 
 	manager = pipeline.NewManager()
 	err := resource.RegisterLoader(pipeline.ResType, pipeline.NewResourceLoader(mapperFactory, pipeline.GetDataResolver()))
@@ -117,7 +122,8 @@ func (f *ActionFactory) New(config *action.Config) (action.Action, error) {
 		streamAction.outChannel = ch
 	}
 
-	instId := ""
+	instId := idGenerator.NextAsString()
+	logger.Debug("Creating Stream Instance: ", instId)
 
 	instLogger := logger
 

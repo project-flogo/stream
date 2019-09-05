@@ -24,7 +24,7 @@ const (
 )
 
 func init() {
-	support.RegisterTelemetryService(&Service{})
+	support.RegisterTelemetryService(&Service{logger:log.ChildLogger(log.RootLogger(), "stream-telemetry")})
 }
 
 //GetRunnerWorkers returns the number of workers to use
@@ -125,12 +125,12 @@ func (s *Service) PipelineStarted(pipelineId string, data map[string]interface{}
 }
 
 func (s *Service) StageStarted(pipelineId, stageId string, data map[string]interface{}) {
-	t := &PipelineTelemetry{Type: MsgStageStarted, PipelineId: pipelineId, Data: data}
+	t := &PipelineTelemetry{Type: MsgStageStarted, PipelineId: pipelineId, StageId:stageId, Data: data}
 	s.broadcast <- t
 }
 
 func (s *Service) StageFinished(pipelineId, stageId string, data map[string]interface{}) {
-	t := &PipelineTelemetry{Type: MsgStageFinished, PipelineId: pipelineId, Data: data}
+	t := &PipelineTelemetry{Type: MsgStageFinished, PipelineId: pipelineId, StageId:stageId, Data: data}
 	s.broadcast <- t
 }
 
