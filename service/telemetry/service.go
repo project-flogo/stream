@@ -42,6 +42,7 @@ func GetTelemetryPort() int {
 
 type PipelineTelemetry struct {
 	PipelineId string                 `json:"pipelineId"`
+	InstanceId string                 `json:"instanceId"`
 	Type       string                 `json:"type"`
 	StageId    string                 `json:"stageId,omitempty"`
 	Data       map[string]interface{} `json:"data"`
@@ -119,23 +120,23 @@ func (s *Service) Stop() error {
 	return nil
 }
 
-func (s *Service) PipelineStarted(pipelineId string, data map[string]interface{}) {
-	t := &PipelineTelemetry{Type: MsgPipelineStarted, PipelineId: pipelineId, Data: data}
+func (s *Service) PipelineStarted(pipelineId, instanceId string, data map[string]interface{}) {
+	t := &PipelineTelemetry{Type: MsgPipelineStarted, PipelineId: pipelineId, InstanceId:instanceId, Data: data}
 	s.broadcast <- t
 }
 
-func (s *Service) StageStarted(pipelineId, stageId string, data map[string]interface{}) {
-	t := &PipelineTelemetry{Type: MsgStageStarted, PipelineId: pipelineId, StageId:stageId, Data: data}
+func (s *Service) StageStarted(pipelineId, instanceId, stageId string, data map[string]interface{}) {
+	t := &PipelineTelemetry{Type: MsgStageStarted, PipelineId: pipelineId, InstanceId:instanceId, StageId:stageId, Data: data}
 	s.broadcast <- t
 }
 
-func (s *Service) StageFinished(pipelineId, stageId string, data map[string]interface{}) {
-	t := &PipelineTelemetry{Type: MsgStageFinished, PipelineId: pipelineId, StageId:stageId, Data: data}
+func (s *Service) StageFinished(pipelineId, instanceId, stageId string, data map[string]interface{}) {
+	t := &PipelineTelemetry{Type: MsgStageFinished, PipelineId: pipelineId, InstanceId:instanceId, StageId:stageId, Data: data}
 	s.broadcast <- t
 }
 
-func (s *Service) PipelineFinished(pipelineId string, data map[string]interface{}) {
-	t := &PipelineTelemetry{Type: MsgPipelineFinished, PipelineId: pipelineId, Data: data}
+func (s *Service) PipelineFinished(pipelineId, instanceId string, data map[string]interface{}) {
+	t := &PipelineTelemetry{Type: MsgPipelineFinished, PipelineId: pipelineId, InstanceId:instanceId, Data: data}
 	s.broadcast <- t
 }
 

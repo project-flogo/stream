@@ -41,6 +41,10 @@ func (inst *Instance) Id() string {
 	return inst.id
 }
 
+func (inst *Instance) PipelineId() string {
+	return inst.def.Id()
+}
+
 //consider a start/stop instance?
 
 func (inst *Instance) Run(discriminator string, input map[string]interface{}) (output map[string]interface{}, status ExecutionStatus, err error) {
@@ -55,7 +59,7 @@ func (inst *Instance) Run(discriminator string, input map[string]interface{}) (o
 	ctx.currentOutput = input
 
 	if t := support.GetTelemetryService(); t != nil {
-		t.PipelineStarted(inst.id, input)
+		t.PipelineStarted(inst.PipelineId(), inst.id, input)
 	}
 
 	for hasWork {
@@ -68,7 +72,7 @@ func (inst *Instance) Run(discriminator string, input map[string]interface{}) (o
 
 	if ctx.status == ExecStatusCompleted {
 		if t := support.GetTelemetryService(); t != nil {
-			t.PipelineFinished(inst.id, ctx.pipelineOutput)
+			t.PipelineFinished(inst.PipelineId(), inst.id, ctx.pipelineOutput)
 		}
 
 		return ctx.pipelineOutput, ctx.status, nil
@@ -88,7 +92,7 @@ func (inst *Instance) DoStep(ctx *ExecutionContext, resume bool) (hasWork bool, 
 	if ctx.stageId < len(inst.def.stages) {
 
 		if t := support.GetTelemetryService(); t != nil {
-			t.StageStarted(inst.id, strconv.Itoa(ctx.stageId), ctx.currentInput)
+			t.StageStarted(inst.PipelineId(), inst.id, strconv.Itoa(ctx.stageId), ctx.currentInput)
 		}
 
 		//get the stage to work on
@@ -100,7 +104,7 @@ func (inst *Instance) DoStep(ctx *ExecutionContext, resume bool) (hasWork bool, 
 		}
 
 		if t := support.GetTelemetryService(); t != nil {
-			t.StageFinished(inst.id, strconv.Itoa(ctx.stageId), ctx.currentOutput)
+			t.StageFinished(inst.PipelineId(), inst.id, strconv.Itoa(ctx.stageId), ctx.currentOutput)
 		}
 
 		if err != nil {
