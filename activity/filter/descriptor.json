@@ -1,7 +1,7 @@
 {
   "name": "flogo-filter",
   "type": "flogo:activity",
-  "version": "0.0.1",
+  "version": "0.2.0",
   "title": "Filter",
   "description": "Simple Filter Activity",
   "homepage": "https://github.com/project-flogo/stream/tree/master/activity/filter",
