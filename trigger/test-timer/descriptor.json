@@ -5,6 +5,16 @@
   "title": "Timer",
   "description": "Simple Timer trigger",
   "homepage": "https://github.com/project-flogo/contrib/tree/master/trigger/timer",
+  "settings":[
+    {
+      "name":"control",
+      "type":"bool"
+    },
+    {
+      "name":"port",
+      "type":"string"
+    }
+  ],
   "output":[
     {
       "name":"data",

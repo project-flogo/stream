@@ -30,6 +30,12 @@ flogo install github.com/skothari-tibco/csvtrigger
 ```
 ### Details
 
+#### Settings:
+| Setting  | Required | Description |
+|:---------|:---------|:------------|
+| control  | false    | Enable control of trigger
+| port     | false    | Port number on which control api is called (/control/resume, /control/pause, /control/restart)
+
 #### Handler Settings:
 | Setting  | Required | Description |
 |:---------|:---------|:------------|
