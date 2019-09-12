@@ -34,6 +34,8 @@ func (rl *ResourceLoader) LoadResource(config *resource.Config) (*resource.Resou
 		return nil, fmt.Errorf("error unmarshalling pipeline resource with id '%s', %s", config.ID, err.Error())
 	}
 
+	defConfig.id = config.ID
+
 	pDef, err := NewDefinition(defConfig, rl.mapperFactory, rl.resolver)
 	if err != nil {
 		return nil, err

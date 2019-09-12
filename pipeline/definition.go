@@ -10,6 +10,7 @@ import (
 )
 
 type DefinitionConfig struct {
+	id       string
 	Name     string               `json:"name"`
 	Metadata *metadata.IOMetadata `json:"metadata"`
 	Stages   []*StageConfig       `json:"stages"`
@@ -17,7 +18,7 @@ type DefinitionConfig struct {
 
 func NewDefinition(config *DefinitionConfig, mf mapper.Factory, resolver resolve.CompositeResolver) (*Definition, error) {
 
-	def := &Definition{name: config.Name, metadata: config.Metadata}
+	def := &Definition{id: config.id, name: config.Name, metadata: config.Metadata}
 
 	for _, sconfig := range config.Stages {
 		stage, err := NewStage(sconfig, mf, resolver)
@@ -33,6 +34,7 @@ func NewDefinition(config *DefinitionConfig, mf mapper.Factory, resolver resolve
 }
 
 type Definition struct {
+	id       string
 	name     string
 	stages   []*Stage
 	metadata *metadata.IOMetadata
@@ -41,6 +43,10 @@ type Definition struct {
 // Metadata returns IO metadata for the pipeline
 func (d *Definition) Metadata() *metadata.IOMetadata {
 	return d.metadata
+}
+
+func (d *Definition) Id() string {
+	return d.id
 }
 
 func (d *Definition) Name() string {
