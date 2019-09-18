@@ -13,7 +13,6 @@ import (
 	"github.com/project-flogo/core/data/metadata"
 	"github.com/project-flogo/core/support/log"
 	"github.com/project-flogo/core/trigger"
-	"github.com/skothari-tibco/scheduler"
 )
 
 var triggerMd = trigger.NewMetadata(&HandlerSettings{}, &Output{})
@@ -50,7 +49,6 @@ func (*Factory) New(config *trigger.Config) (trigger.Trigger, error) {
 }
 
 type Trigger struct {
-	timers   []*scheduler.Job
 	handlers []*Handler
 	logger   log.Logger
 	settings *Settings
