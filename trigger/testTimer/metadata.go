@@ -1,4 +1,4 @@
-package csvtimer
+package testTimer
 
 import "github.com/project-flogo/core/data/coerce"
 
@@ -8,12 +8,15 @@ type Settings struct {
 }
 
 type HandlerSettings struct {
+	Id 			   string `md:"id,required"`
 	StartInterval  string `md:"startDelay"`
-	RepeatInterval string `md:"repeatInterval"`
+	RepeatInterval string `md:"repeatInterval,required"`
 	FilePath       string `md:"filePath"`
 	Header         bool   `md:"header"`
+	Block          bool   `md:"block,required"`
 	Count          int
 	Lines          [][]string
+	Ch chan int
 }
 
 type Output struct {

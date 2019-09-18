@@ -1,4 +1,4 @@
-package csvtimer
+package testTimer
 
 import (
 	"testing"

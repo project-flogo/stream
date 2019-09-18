@@ -70,12 +70,42 @@ func (m *OverrideExprMapper) Apply(inputScope data.Scope) (map[string]interface{
 	for key, expr := range m.mappings {
 		val, err := expr.Eval(inputScope)
 		if err != nil {
+
 			//todo add some context to error (consider adding String() to exprImpl)
 			return nil, err
 		}
-
 		output[key] = val
 	}
 
 	return output, nil
+}
+
+func IsLiteral(value interface{}) bool {
+	if value != nil {
+		switch t := value.(type) {
+		case map[string]interface{}:
+			for _, v := range t {
+
+				if !IsLiteral(v) {
+					return false
+				}
+			}
+		case []interface{}:
+			for _, element := range t {
+				if !IsLiteral(element) {
+					return false
+				}
+			}
+		default:
+			return !isExpr(t)
+		}
+	}
+	return true
+}
+
+func isExpr(value interface{}) bool {
+	if strVal, ok := value.(string); ok && len(strVal) > 0 && (strVal[0] == '=') {
+		return true
+	}
+	return false
 }

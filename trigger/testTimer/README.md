@@ -37,43 +37,17 @@ flogo install github.com/skothari-tibco/csvtrigger
 | port     | false    | Port number on which control api is called (/control/resume, /control/pause, /control/restart)
 
 #### Handler Settings:
-| Setting  | Required | Description |
-|:---------|:---------|:------------|
-| filePath   | true     | Path to a CSV file
-| repeatInterval | false     | the repeat interval (1, 200 etc in millisecond), doesn't repeat if not specified
+| Setting        | Required | Description |
+|:---------------|:---------|:------------|
+| filePath       | true     | Path to a CSV file
+| repeatInterval | false    | the repeat interval (1, 200 etc in millisecond), doesn't repeat if not specified
+| id             | true     | Id of Handler
+| block          | true     | Should the file be send as a block or stream. (Block set to true will send the csv file all at once.)
 
 
 ## Example Configurations
 
 Triggers are configured via the triggers.json of your application. The following are some example configuration of the Timer Trigger.
-
-
-### Only once immediately
-Configure the Trigger to run a flow once immediately
-
-```json
-{
-  "triggers": [
-    {
-      "id": "flogo-timer",
-      "ref": "github.com/project-flogo/contrib/trigger/timer",
-      "handlers": [
-        {
-          "settings": {
-            "filePath": "path_to_file"
-          },
-          "action": {
-            "ref": "github.com/project-flogo/flow",
-            "settings": {
-              "flowURI": "res://flow:myflow"
-            }
-          }
-        }
-      ]
-    }
-  ]
-}
-```
 
 ### Repeating
 Configure the Trigger to run a flow repeating every 10 milliseconds. 
@@ -86,8 +60,11 @@ Configure the Trigger to run a flow repeating every 10 milliseconds.
       "handlers": [
         {
           "settings": {
-	    "filePath": "path_to_file",
-            "repeatInterval": "10"
+            "id" : "sample",
+            "filePath": "out.csv",
+            "header": true,
+            "repeatInterval": "3000",
+            "block" : false
           },
           "action": {
             "ref": "github.com/project-flogo/flow",
