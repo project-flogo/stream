@@ -1,0 +1,44 @@
+{
+  "name": "flogo-timer",
+  "type": "flogo:trigger",
+  "version": "0.0.2",
+  "title": "Timer",
+  "description": "Simple Timer trigger",
+  "homepage": "https://github.com/project-flogo/contrib/tree/master/trigger/timer",
+  "settings":[
+    {
+      "name":"port",
+      "type":"string"
+    }
+  ],
+  "output":[
+    {
+      "name":"data",
+      "type":"object"
+    },
+    {
+      "name":"error",
+      "type":"any"
+    }
+  ],
+  "handler": {
+    "settings": [
+      {
+        "name": "columnNameAsKey",
+        "type": "bool"
+      },
+      {
+        "name": "repeatInterval",
+        "type": "string"
+      },
+      {
+        "name" : "filePath",
+        "type" : "string"
+      },
+      {
+        "name" : "asBlock",
+        "type" : "boolean"
+      }
+    ]
+  }
+}
