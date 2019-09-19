@@ -1,4 +1,4 @@
-package testTimer
+package streamtester
 
 import (
 	"testing"

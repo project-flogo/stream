@@ -1,22 +1,16 @@
-package testTimer
+package streamtester
 
 import "github.com/project-flogo/core/data/coerce"
 
 type Settings struct {
-	Control bool   `md:"control"`
-	Port    string `md:"port"`
+	Port string `md:"port"`
 }
 
 type HandlerSettings struct {
-	Id 			   string `md:"id,required"`
-	StartInterval  string `md:"startDelay"`
 	RepeatInterval string `md:"repeatInterval,required"`
-	FilePath       string `md:"filePath"`
-	Header         bool   `md:"header"`
-	Block          bool   `md:"block,required"`
-	Count          int
-	Lines          [][]string
-	Ch chan int
+	FilePath       string `md:"filePath,required"`
+	Header         bool   `md:"columnNameAsKey"`
+	Block          bool   `md:"asBlock"`
 }
 
 type Output struct {

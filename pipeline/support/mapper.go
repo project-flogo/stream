@@ -70,10 +70,10 @@ func (m *OverrideExprMapper) Apply(inputScope data.Scope) (map[string]interface{
 	for key, expr := range m.mappings {
 		val, err := expr.Eval(inputScope)
 		if err != nil {
-
 			//todo add some context to error (consider adding String() to exprImpl)
 			return nil, err
 		}
+
 		output[key] = val
 	}
 

@@ -1,4 +1,4 @@
-module github.com/project-flogo/stream/trigger/testTimer
+module github.com/project-flogo/stream/trigger/streamtester
 
 require (
 	github.com/julienschmidt/httprouter v1.2.0

@@ -1,5 +1,5 @@
 <!--
-title: CSV Timer
+title: streamtester
 
 -->
 # Timer Trigger
@@ -8,13 +8,14 @@ This trigger provides your flogo application the ability to get data from a CSV 
 ## Installation
 
 ```bash
-flogo install github.com/skothari-tibco/csvtrigger
+flogo install github.com/project-flogo/stream/trigger/streamtester
 ```
 
 ## Metadata
 ```json
 {
   "handler": {
+    "name": "sample",
     "settings": [
       {
         "name": "filePath",
@@ -33,16 +34,15 @@ flogo install github.com/skothari-tibco/csvtrigger
 #### Settings:
 | Setting  | Required | Description |
 |:---------|:---------|:------------|
-| control  | false    | Enable control of trigger
-| port     | false    | Port number on which control api is called (/control/resume, /control/pause, /control/restart)
+| port     | true     | Port number on which control api is called 
 
 #### Handler Settings:
 | Setting        | Required | Description |
 |:---------------|:---------|:------------|
 | filePath       | true     | Path to a CSV file
-| repeatInterval | false    | the repeat interval (1, 200 etc in millisecond), doesn't repeat if not specified
-| id             | true     | Id of Handler
-| block          | true     | Should the file be send as a block or stream. (Block set to true will send the csv file all at once.)
+| repeatInterval | true     | the repeat interval (1, 200 etc in millisecond), doesn't repeat if not specified
+| columnNameAsKey| false    | Send as Map
+| asBlock        | false    | Should the file be send as a block or stream. (Block set to true will send the csv file all at once.)
 
 
 ## Example Configurations
@@ -51,6 +51,7 @@ Triggers are configured via the triggers.json of your application. The following
 
 ### Repeating
 Configure the Trigger to run a flow repeating every 10 milliseconds. 
+
 ```json
 {
   "triggers": [
@@ -63,7 +64,7 @@ Configure the Trigger to run a flow repeating every 10 milliseconds.
             "id" : "sample",
             "filePath": "out.csv",
             "header": true,
-            "repeatInterval": "3000",
+            "repeatInterval": "10",
             "block" : false
           },
           "action": {
@@ -78,3 +79,14 @@ Configure the Trigger to run a flow repeating every 10 milliseconds.
   ]
 }
 ```
+### Control Example
+
+The trigger handlers can be controlled using REST Api. 
+
+POST /tester/resume : Will Resume all the Trigger Handlers
+
+POST /tester/pause : Will Pause all the Trigger Handlers
+
+POST /tester/start : Will Start all the Trigger Handlers
+
+POST /tester/pause : Will Pause all the Trigger Handlers

@@ -7,10 +7,6 @@
   "homepage": "https://github.com/project-flogo/contrib/tree/master/trigger/timer",
   "settings":[
     {
-      "name":"control",
-      "type":"bool"
-    },
-    {
       "name":"port",
       "type":"string"
     }
@@ -27,7 +23,10 @@
   ],
   "handler": {
     "settings": [
-  
+      {
+        "name": "columnNameAsKey",
+        "type": "bool"
+      },
       {
         "name": "repeatInterval",
         "type": "string"
@@ -35,6 +34,10 @@
       {
         "name" : "filePath",
         "type" : "string"
+      },
+      {
+        "name" : "asBlock",
+        "type" : "boolean"
       }
     ]
   }

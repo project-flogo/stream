@@ -1,4 +1,4 @@
-package testTimer
+package streamtester
 
 import (
 	"context"
@@ -55,9 +55,18 @@ type Trigger struct {
 	router   *httprouter.Router
 	ch       chan int
 }
+
 type Handler struct {
 	handler  trigger.Handler
+	EmitInfo *HandlerEmitterInfo
 	settings *HandlerSettings
+}
+
+type HandlerEmitterInfo struct {
+	Name  string
+	Count int
+	Lines [][]string
+	Ch    chan int
 }
 
 // Init implements trigger.Init
@@ -67,32 +76,40 @@ func (t *Trigger) Initialize(ctx trigger.InitContext) error {
 
 	t.logger = ctx.Logger()
 
-	if t.settings.Control {
-		router := httprouter.New()
+	router := httprouter.New()
+	
+	router.POST("/tester/resume", resumeHandler(t))
+	router.POST("/tester/pause", pauseHandler(t))
+	router.POST("/tester/start", startHandler(t))
+	router.POST("/tester/stop", stopHandler(t))
+	//Register For All.
+	router.POST("/tester/resume/:id", resumeHandler(t))
+	router.POST("/tester/pause/:id", pauseHandler(t))
+	router.POST("/tester/start/:id", startHandler(t))
+	router.POST("/tester/stop/:id", stopHandler(t))
 
-		//Register For All.
-		router.POST("/control/resume/", resumeHandler(t.ch, nil))
-		router.POST("/control/pause/", pauseHandler(t.ch, nil))
-		router.POST("/control/start/", startHandler(t.ch, nil))
-		router.POST("/control/stop/", stopHandler(t.ch, nil))
-		for _, handler := range ctx.GetHandlers() {
+	for _, handler := range ctx.GetHandlers() {
 
-			handlerSettings := &HandlerSettings{}
-			err := metadata.MapToStruct(handler.Settings(), handlerSettings, true)
-			if err != nil {
-				return err
-			}
-			handlerSettings.Ch = make(chan int)
-			t.handlers = append(t.handlers, &Handler{handler: handler, settings: handlerSettings})
-			//Register Individual
-			router.POST("/control/resume/"+handlerSettings.Id, resumeHandler(t.ch, handlerSettings))
-			router.POST("/control/pause/"+handlerSettings.Id, pauseHandler(t.ch, handlerSettings))
-			router.POST("/control/start/"+handlerSettings.Id, startHandler(t.ch, handlerSettings))
-			router.POST("/control/stop/"+handlerSettings.Id, stopHandler(t.ch, handlerSettings))
+		handlerSettings := &HandlerSettings{}
+		err := metadata.MapToStruct(handler.Settings(), handlerSettings, true)
+		if err != nil {
+			return err
 		}
 
-		t.router = router
+		emitInfo := &HandlerEmitterInfo{}
+		var handlerName = handler.Name()
+
+		if handlerName != "Handler" {
+			//Register Individual
+			emitInfo.Name = handlerName
+		}
+		emitInfo.Ch = make(chan int)
+
+		t.handlers = append(t.handlers, &Handler{handler: handler, settings: handlerSettings, EmitInfo: emitInfo})
+
 	}
+
+	t.router = router
 
 	return nil
 }
@@ -102,7 +119,7 @@ func (t *Trigger) Start() error {
 
 	for _, handler := range t.handlers {
 
-		go t.start(handler.handler, handler.settings)
+		go t.start(handler.handler, handler.settings, handler.EmitInfo)
 
 	}
 	if t.router != nil {
@@ -121,13 +138,13 @@ func (t *Trigger) Stop() error {
 
 	return nil
 }
-func (t *Trigger) start(handler trigger.Handler, settings *HandlerSettings) {
+func (t *Trigger) start(handler trigger.Handler, settings *HandlerSettings, emitInfo *HandlerEmitterInfo) {
 
 	var stat int
 	for {
 		triggerData := &Output{}
 
-		stat = getStatus(t, settings, stat)
+		stat = getStatus(t, emitInfo, stat)
 		if settings.Block {
 			data, err := ReadCsv(settings.FilePath)
 			if err != nil {
@@ -136,13 +153,13 @@ func (t *Trigger) start(handler trigger.Handler, settings *HandlerSettings) {
 
 			triggerData = prepareOnceData(data, settings.Header)
 		} else {
-			dataTemp, err := ReadCsvInterval(settings)
+			dataTemp, err := ReadCsvInterval(settings.FilePath, emitInfo)
 			if err != nil {
 				return
 			}
-			triggerData = prepareRepeatingData(dataTemp, settings)
+			triggerData = prepareRepeatingData(dataTemp, emitInfo, settings.Header)
 
-			settings.Count = settings.Count + 1
+			emitInfo.Count = emitInfo.Count + 1
 		}
 
 		_, err := handler.Handle(context.Background(), triggerData)
@@ -182,11 +199,11 @@ func prepareOnceData(data [][]string, header bool) *Output {
 	return triggerData
 
 }
-func prepareRepeatingData(data []string, settings *HandlerSettings) *Output {
+func prepareRepeatingData(data []string, emitInfo *HandlerEmitterInfo, header bool) *Output {
 	triggerData := &Output{}
 
-	if settings.Header {
-		header := settings.Lines[0]
+	if header {
+		header := emitInfo.Lines[0]
 		obj := make(map[string]interface{})
 
 		for i := 0; i < len(data); i++ {
@@ -225,21 +242,21 @@ func ReadCsv(path string) ([][]string, error) {
 	return lines, nil
 }
 
-func ReadCsvInterval(settings *HandlerSettings) ([]string, error) {
+func ReadCsvInterval(path string, emitInfo *HandlerEmitterInfo) ([]string, error) {
 
-	if settings.Count == 0 {
-		data, err := ReadCsv(settings.FilePath)
+	if emitInfo.Count == 0 {
+		data, err := ReadCsv(path)
 		if err != nil {
 			return nil, err
 		}
-		settings.Lines = data
+		emitInfo.Lines = data
 
-		return settings.Lines[0], nil
+		return emitInfo.Lines[0], nil
 	}
-	if settings.Count == len(settings.Lines) {
+	if emitInfo.Count == len(emitInfo.Lines) {
 		return nil, errors.New("Done")
 	}
 
-	return settings.Lines[settings.Count], nil
+	return emitInfo.Lines[emitInfo.Count], nil
 
 }
