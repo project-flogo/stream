@@ -91,9 +91,9 @@ func (inst *Instance) DoStep(ctx *ExecutionContext, resume bool) (hasWork bool, 
 
 	if ctx.stageId < len(inst.def.stages) {
 
-		if t := support.GetTelemetryService(); t != nil {
-			t.StageStarted(inst.PipelineId(), inst.id, strconv.Itoa(ctx.stageId), ctx.currentInput)
-		}
+		//if t := support.GetTelemetryService(); t != nil {
+		//	t.StageStarted(inst.PipelineId(), inst.id, strconv.Itoa(ctx.stageId), ctx.currentInput)
+		//}
 
 		//get the stage to work on
 		done := false
@@ -103,7 +103,7 @@ func (inst *Instance) DoStep(ctx *ExecutionContext, resume bool) (hasWork bool, 
 			done, err = ExecuteCurrentStage(ctx)
 		}
 
-		if t := support.GetTelemetryService(); t != nil {
+		if t := support.GetTelemetryService(); t != nil  && done {
 			t.StageFinished(inst.PipelineId(), inst.id, strconv.Itoa(ctx.stageId), ctx.currentOutput)
 		}
 
@@ -166,7 +166,10 @@ func ExecuteCurrentStage(ctx *ExecutionContext) (done bool, err error) {
 		if err != nil {
 			return false, err
 		}
+	}
 
+	if t := support.GetTelemetryService(); t != nil {
+		t.StageStarted(ctx.pipeline.PipelineId(), ctx.pipeline.id, strconv.Itoa(ctx.stageId), ctx.currentInput)
 	}
 
 	//clear previous output
