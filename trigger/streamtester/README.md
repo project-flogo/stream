@@ -2,8 +2,8 @@
 title: streamtester
 
 -->
-# Timer Trigger
-This trigger provides your flogo application the ability to get data from a CSV file after a particular interval for an action 
+# StreamTester Trigger
+This trigger gives you the ability to test your stream application using mock data provided in a csv file.
 
 ## Installation
 
@@ -11,25 +11,8 @@ This trigger provides your flogo application the ability to get data from a CSV 
 flogo install github.com/project-flogo/stream/trigger/streamtester
 ```
 
-## Metadata
-```json
-{
-  "handler": {
-    "name": "sample",
-    "settings": [
-      {
-        "name": "filePath",
-        "type": "string"
-      },
-      {
-        "name": "repeatInterval",
-        "type": "string"
-      }
-    ]
-  }
-}
-```
-### Details
+
+### Configuration
 
 #### Settings:
 | Setting  | Required | Description |
@@ -44,33 +27,45 @@ flogo install github.com/project-flogo/stream/trigger/streamtester
 | columnNameAsKey| false    | Send as Map
 | asBlock        | false    | Should the file be send as a block or stream. (Block set to true will send the csv file all at once.)
 
+### Trigger Control API
 
-## Example Configurations
+The tester can be controlled using a REST API. 
 
-Triggers are configured via the triggers.json of your application. The following are some example configuration of the Timer Trigger.
 
-### Repeating
-Configure the Trigger to run a flow repeating every 10 milliseconds. 
+POST /tester/start : Starts all data emission 
+
+POST /tester/stop : Stops all data emission 
+
+POST /tester/pause : Pauses all data emission 
+
+POST /tester/resume : Resumes all data emission 
+
+***Note:*** *If a handler name has been specified, the name can be use to control the data emmission for a particular handler.  ex . POST /tester/pause/myHandler*   
+
+
+## Examples
+
+### Simple
+Configure the trigger to emit data from the csv file every 10 milliseconds. 
 
 ```json
 {
   "triggers": [
     {
-      "id": "flogo-timer",
-      "ref": "github.com/project-flogo/contrib/trigger/timer",
+      "id": "stream-tester",
+      "ref": "github.com/project-flogo/stream/trigger/streamtester",
       "handlers": [
         {
           "settings": {
-            "id" : "sample",
             "filePath": "out.csv",
-            "header": true,
+            "columnNameAsKey": true,
             "repeatInterval": "10",
             "block" : false
           },
           "action": {
-            "ref": "github.com/project-flogo/flow",
+            "ref": "github.com/project-flogo/stream",
             "settings": {
-              "flowURI": "res://flow:myflow"
+              "flowURI": "res://stream:mystream"
             }
           }
         }
@@ -79,14 +74,3 @@ Configure the Trigger to run a flow repeating every 10 milliseconds.
   ]
 }
 ```
-### Control Example
-
-The trigger handlers can be controlled using REST Api. 
-
-POST /tester/resume : Will Resume all the Trigger Handlers
-
-POST /tester/pause : Will Pause all the Trigger Handlers
-
-POST /tester/start : Will Start all the Trigger Handlers
-
-POST /tester/pause : Will Pause all the Trigger Handlers
