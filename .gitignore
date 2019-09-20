@@ -48,3 +48,4 @@ tags
 submodules/flogo-cicd/.build-cache
 ./Dockerfile
 
+.vscode/

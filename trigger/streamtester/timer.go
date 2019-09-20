@@ -160,8 +160,10 @@ func (t *Trigger) start(handler trigger.Handler, settings *HandlerSettings, emit
 			triggerData = prepareRepeatingData(dataTemp, emitInfo, settings.Header)
 
 			emitInfo.Count = emitInfo.Count + 1
+			//triggerData.Data = dataTemp
 		}
-
+		
+		t.logger.Debug("Data passed to Handler..",triggerData )
 		_, err := handler.Handle(context.Background(), triggerData)
 
 		if err != nil {
@@ -203,19 +205,23 @@ func prepareRepeatingData(data []string, emitInfo *HandlerEmitterInfo, header bo
 	triggerData := &Output{}
 
 	if header {
-		header := emitInfo.Lines[0]
+		if emitInfo.Count == 0 {
+			return triggerData
+		} 
+		headerData := emitInfo.Lines[0]
 		obj := make(map[string]interface{})
 
 		for i := 0; i < len(data); i++ {
 			if num, err := strconv.ParseFloat(data[i], 64); err == nil {
-				obj[header[i]] = num
+				obj[headerData[i]] = num
 			} else {
-				obj[header[i]] = data[i]
+				obj[headerData[i]] = data[i]
 			}
 
 		}
 
 		triggerData.Data = obj
+		
 
 	} else {
 		triggerData.Data = data
