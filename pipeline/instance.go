@@ -3,7 +3,9 @@ package pipeline
 import (
 	"errors"
 	"fmt"
+	"github.com/project-flogo/stream/pipeline/support"
 	"runtime/debug"
+	"strconv"
 	"strings"
 
 	"github.com/project-flogo/core/activity"
@@ -39,6 +41,10 @@ func (inst *Instance) Id() string {
 	return inst.id
 }
 
+func (inst *Instance) PipelineId() string {
+	return inst.def.Id()
+}
+
 //consider a start/stop instance?
 
 func (inst *Instance) Run(discriminator string, input map[string]interface{}) (output map[string]interface{}, status ExecutionStatus, err error) {
@@ -52,6 +58,10 @@ func (inst *Instance) Run(discriminator string, input map[string]interface{}) (o
 	//pipeline - current output is the input to the next stage
 	ctx.currentOutput = input
 
+	if t := support.GetTelemetryService(); t != nil {
+		t.PipelineStarted(inst.PipelineId(), inst.id, input)
+	}
+
 	for hasWork {
 
 		hasWork, err = inst.DoStep(ctx, false)
@@ -61,6 +71,10 @@ func (inst *Instance) Run(discriminator string, input map[string]interface{}) (o
 	}
 
 	if ctx.status == ExecStatusCompleted {
+		if t := support.GetTelemetryService(); t != nil {
+			t.PipelineFinished(inst.PipelineId(), inst.id, ctx.pipelineOutput)
+		}
+
 		return ctx.pipelineOutput, ctx.status, nil
 	}
 
@@ -77,12 +91,20 @@ func (inst *Instance) DoStep(ctx *ExecutionContext, resume bool) (hasWork bool, 
 
 	if ctx.stageId < len(inst.def.stages) {
 
+		//if t := support.GetTelemetryService(); t != nil {
+		//	t.StageStarted(inst.PipelineId(), inst.id, strconv.Itoa(ctx.stageId), ctx.currentInput)
+		//}
+
 		//get the stage to work on
 		done := false
 		if resume {
 			done, err = ResumeCurrentStage(ctx)
 		} else {
 			done, err = ExecuteCurrentStage(ctx)
+		}
+
+		if t := support.GetTelemetryService(); t != nil  && done {
+			t.StageFinished(inst.PipelineId(), inst.id, strconv.Itoa(ctx.stageId), ctx.currentOutput)
 		}
 
 		if err != nil {
@@ -144,7 +166,10 @@ func ExecuteCurrentStage(ctx *ExecutionContext) (done bool, err error) {
 		if err != nil {
 			return false, err
 		}
+	}
 
+	if t := support.GetTelemetryService(); t != nil {
+		t.StageStarted(ctx.pipeline.PipelineId(), ctx.pipeline.id, strconv.Itoa(ctx.stageId), ctx.currentInput)
 	}
 
 	//clear previous output
