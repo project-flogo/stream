@@ -6,3 +6,5 @@ require (
 	github.com/project-flogo/core v0.9.3
 	github.com/project-flogo/stream v0.2.1-rc.1
 )
+
+go 1.13
