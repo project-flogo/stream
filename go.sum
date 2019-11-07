@@ -10,6 +10,8 @@ github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZN
 github.com/project-flogo/core v0.9.0-rc.1/go.mod h1:dzmBbQfNNC0g0KClKYQxxGJLe53MHafg75Vhmw2TW8U=
 github.com/project-flogo/core v0.9.0 h1:/iR4m5L0zj5SuqLtDDZIRyvrvG8TxwxdM0n8ZURo1I4=
 github.com/project-flogo/core v0.9.0/go.mod h1:QGWi7TDLlhGUaYH3n/16ImCuulbEHGADYEXyrcHhX7U=
+github.com/project-flogo/core v0.9.3 h1:uZXHR9j1Byqt+x3faNnOqB8NlEfwE2gpCh40iQ+44oA=
+github.com/project-flogo/core v0.9.3/go.mod h1:QGWi7TDLlhGUaYH3n/16ImCuulbEHGADYEXyrcHhX7U=
 github.com/project-flogo/stream/trigger/streamtester v0.0.0-20190919190121-865c8a95b060 h1:InNzLLbJksypz+QAx/bCw36PE8hPG7SaP9m7/HoZAGg=
 github.com/project-flogo/stream/trigger/streamtester v0.0.0-20190919190121-865c8a95b060/go.mod h1:6s07TVu35iDMFI5z7I/+kg/vvowwrkQwJbMBD/ajCCU=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
