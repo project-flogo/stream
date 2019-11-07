@@ -9,6 +9,7 @@ import (
 	"github.com/project-flogo/core/data"
 	"github.com/project-flogo/core/data/metadata"
 	"github.com/project-flogo/core/support/log"
+	"github.com/project-flogo/core/support/trace"
 	"github.com/project-flogo/stream/pipeline/support"
 )
 
@@ -108,6 +109,10 @@ func (eCtx *ExecutionContext) Return(returnData map[string]interface{}, err erro
 
 func (eCtx *ExecutionContext) Scope() data.Scope {
 	return eCtx.pipeline.sm.GetState(eCtx.discriminator).GetScope()
+}
+
+func (eCtx *ExecutionContext) GetTracingContext() trace.TracingContext {
+	return nil
 }
 
 /////////////////////////////////////////
