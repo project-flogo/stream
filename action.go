@@ -53,7 +53,7 @@ func (f *ActionFactory) Initialize(ctx action.InitContext) error {
 
 	if ts != nil {
 		if tsm, ok := ts.(service.Service); ok {
-			sm := service.NewServiceManager()
+			sm := ctx.ServiceManager()
 			err := sm.RegisterService(tsm)
 			if err != nil {
 				return err
