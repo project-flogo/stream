@@ -4,13 +4,14 @@ import (
 	"fmt"
 
 	"github.com/project-flogo/core/data"
+	"github.com/project-flogo/core/data/property"
 	"github.com/project-flogo/core/data/resolve"
 )
 
 var pipelineRes = resolve.NewCompositeResolver(map[string]resolve.Resolver{
 	".":        &resolve.ScopeResolver{},
 	"env":      &resolve.EnvResolver{},
-	"property": &resolve.PropertyResolver{},
+	"property": &property.Resolver{},
 	"pipeline": &MultiScopeResolver{scopeId: ScopePipeline},
 	"passthru": &MultiScopeResolver{scopeId: ScopePassthru}})
 
