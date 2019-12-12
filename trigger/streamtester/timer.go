@@ -63,10 +63,10 @@ type Handler struct {
 }
 
 type HandlerEmitterInfo struct {
-	Name  string
-	Count int
-	Lines [][]string
-	Ch    chan int
+	Name        string
+	CurentIndex int
+	Lines       [][]string
+	Ch          chan int
 }
 
 // Init implements trigger.Init
@@ -161,11 +161,22 @@ func (t *Trigger) start(handler trigger.Handler, settings *HandlerSettings, emit
 			}
 			triggerData = prepareRepeatingData(dataTemp, emitInfo, settings.Header)
 
-			emitInfo.Count = emitInfo.Count + 1
+			emitInfo.CurentIndex = emitInfo.CurentIndex + 1
 			//triggerData.Data = dataTemp
 		}
 
-		t.logger.Debug("Data passed to Handler..", triggerData.Data)
+		//Special case to get columns
+		if settings.GetColumn {
+			//Get Cloumns
+			triggerData.Data = emitInfo.Lines[0]
+			//Set it to false so, so ad to avoid it doing
+			//it again
+			settings.GetColumn = false
+			//Reset Current Index
+			emitInfo.CurentIndex--
+		}
+
+		t.logger.Debugf("Trigger Data %#v", triggerData.Data)
 
 		_, err := handler.Handle(context.Background(), triggerData)
 
@@ -251,22 +262,21 @@ func ReadCsv(path string) ([][]string, error) {
 
 func ReadCsvInterval(path string, emitInfo *HandlerEmitterInfo) ([]string, error) {
 
-	if emitInfo.Count == 0 {
+	if emitInfo.CurentIndex == 0 {
 		data, err := ReadCsv(path)
 		if err != nil {
 			return nil, err
 		}
 		emitInfo.Lines = data
 		defer func() {
-			//So the first data point is data rather than headers.
-			emitInfo.Count += 1
+			emitInfo.CurentIndex += 1
 		}()
-		return emitInfo.Lines[0], nil
+		return emitInfo.Lines[1], nil
 	}
-	if emitInfo.Count == len(emitInfo.Lines) {
+	if emitInfo.CurentIndex == len(emitInfo.Lines) {
 		return nil, errors.New("Done")
 	}
 
-	return emitInfo.Lines[emitInfo.Count], nil
+	return emitInfo.Lines[emitInfo.CurentIndex], nil
 
 }

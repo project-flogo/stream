@@ -9,8 +9,9 @@ type Settings struct {
 type HandlerSettings struct {
 	RepeatInterval string `md:"repeatInterval,required"`
 	FilePath       string `md:"filePath,required"`
-	Header         bool   `md:"columnNameAsKey"`
+	Header         bool   `md:"dataAsMap"`
 	Block          bool   `md:"asBlock"`
+	GetColumn      bool   `md:"getColumnNames"`
 }
 
 type Output struct {
