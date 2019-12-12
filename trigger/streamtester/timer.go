@@ -77,7 +77,7 @@ func (t *Trigger) Initialize(ctx trigger.InitContext) error {
 	t.logger = ctx.Logger()
 
 	router := httprouter.New()
-	
+
 	router.POST("/tester/resume", resumeHandler(t))
 	router.POST("/tester/pause", pauseHandler(t))
 	router.POST("/tester/start", startHandler(t))
@@ -148,6 +148,7 @@ func (t *Trigger) start(handler trigger.Handler, settings *HandlerSettings, emit
 		if settings.Block {
 			data, err := ReadCsv(settings.FilePath)
 			if err != nil {
+				t.logger.Debug("Error while reading csv.", err)
 				return
 			}
 
@@ -155,6 +156,7 @@ func (t *Trigger) start(handler trigger.Handler, settings *HandlerSettings, emit
 		} else {
 			dataTemp, err := ReadCsvInterval(settings.FilePath, emitInfo)
 			if err != nil {
+				t.logger.Debug("Error while reading csv.", err)
 				return
 			}
 			triggerData = prepareRepeatingData(dataTemp, emitInfo, settings.Header)
@@ -162,11 +164,13 @@ func (t *Trigger) start(handler trigger.Handler, settings *HandlerSettings, emit
 			emitInfo.Count = emitInfo.Count + 1
 			//triggerData.Data = dataTemp
 		}
-		
-		t.logger.Debug("Data passed to Handler..",triggerData )
+
+		t.logger.Debug("Data passed to Handler..", triggerData.Data)
+
 		_, err := handler.Handle(context.Background(), triggerData)
 
 		if err != nil {
+			t.logger.Debug("Error while executing handler.", err)
 			return
 		}
 
@@ -205,9 +209,7 @@ func prepareRepeatingData(data []string, emitInfo *HandlerEmitterInfo, header bo
 	triggerData := &Output{}
 
 	if header {
-		if emitInfo.Count == 0 {
-			return triggerData
-		} 
+
 		headerData := emitInfo.Lines[0]
 		obj := make(map[string]interface{})
 
@@ -221,7 +223,6 @@ func prepareRepeatingData(data []string, emitInfo *HandlerEmitterInfo, header bo
 		}
 
 		triggerData.Data = obj
-		
 
 	} else {
 		triggerData.Data = data
@@ -256,7 +257,10 @@ func ReadCsvInterval(path string, emitInfo *HandlerEmitterInfo) ([]string, error
 			return nil, err
 		}
 		emitInfo.Lines = data
-
+		defer func() {
+			//So the first data point is data rather than headers.
+			emitInfo.Count += 1
+		}()
 		return emitInfo.Lines[0], nil
 	}
 	if emitInfo.Count == len(emitInfo.Lines) {
