@@ -9,7 +9,7 @@ func getStatus(t *Trigger, emitInfo *HandlerEmitterInfo, stat int) int {
 				break
 			}
 			if stat == Stop {
-				emitInfo.Count = 0
+				emitInfo.CurentIndex = 0
 				continue
 			}
 			if stat == Pause {

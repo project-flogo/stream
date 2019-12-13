@@ -24,7 +24,7 @@
   "handler": {
     "settings": [
       {
-        "name": "columnNameAsKey",
+        "name": "dataAsMap",
         "type": "bool"
       },
       {
@@ -37,6 +37,10 @@
       },
       {
         "name" : "asBlock",
+        "type" : "boolean"
+      },
+      {
+        "name" : "getColumnNames",
         "type" : "boolean"
       }
     ]

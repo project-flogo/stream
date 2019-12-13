@@ -24,7 +24,8 @@ flogo install github.com/project-flogo/stream/trigger/streamtester
 |:---------------|:---------|:------------|
 | filePath       | true     | Path to a CSV file
 | repeatInterval | true     | the repeat interval (1, 200 etc in millisecond), doesn't repeat if not specified
-| columnNameAsKey| false    | Send as Map
+| dataAsMap      | false    | Send as Map
+| getColumnNames | false    | Get all the columns as array.
 | asBlock        | false    | Should the file be send as a block or stream. (Block set to true will send the csv file all at once.)
 
 ### Trigger Control API
