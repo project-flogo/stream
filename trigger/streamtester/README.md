@@ -73,9 +73,8 @@ Configure the trigger to emit data from the csv file every 10 milliseconds.
         {
           "settings": {
             "filePath": "out.csv",
-            "columnNameAsKey": true,
-            "repeatInterval": 10,
-            "block" : false
+            "dataAsMap": true,
+            "emitDelay": 50
           },
           "action": {
             "ref": "github.com/project-flogo/stream",
