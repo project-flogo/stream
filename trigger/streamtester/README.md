@@ -23,7 +23,7 @@ flogo install github.com/project-flogo/stream/trigger/streamtester
 |:---------------|:--------|:------------|
 | filePath       | string  | Path to a CSV file (local file path or url) - **REQUIRED**
 | emitDelay      | int     | The delay between data emission in milliseconds, the default is 100ms (min is 5ms)
-| replayData     | bool    | Continuously replays the data set (default is true) 
+| replayData     | bool    | Continuously replay the data set (default is true) 
 | dataAsMap      | bool    | Convert the data to a Map, with column names as keys
 | getColumnNames | bool    | Get all the column names
 | allDataAtOnce  | bool    | Indicates that the data be sent all at once, otherwise one row at a time
@@ -32,7 +32,7 @@ flogo install github.com/project-flogo/stream/trigger/streamtester
 | Name        | Type   | Description
 |:---         | :---   | :---        
 | columnNames | array | The array of column names if getColumnNames was enabled
-| data        | params | he data that is being emitted from the CSV (either a row or the entire set)
+| data        | any   | The data that is being emitted from the CSV (either a row or the entire set)
 
 ### Trigger Control API
 
