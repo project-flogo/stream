@@ -61,7 +61,7 @@ for that specified handler.
 ## Examples
 
 ### Simple
-Configure the trigger to emit data from the csv file every 10 milliseconds. 
+Configure the trigger to emit data from the csv file every 50 milliseconds. 
 
 ```json
 {
