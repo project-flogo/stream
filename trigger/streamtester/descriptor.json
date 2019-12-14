@@ -1,47 +1,63 @@
 {
-  "name": "flogo-timer",
+  "name": "flogo-streamtester",
   "type": "flogo:trigger",
-  "version": "0.0.2",
-  "title": "Timer",
-  "description": "Simple Timer trigger",
-  "homepage": "https://github.com/project-flogo/contrib/tree/master/trigger/timer",
+  "version": "0.1.0",
+  "title": "Stream Tester",
+  "description": "Simple Stream Tester Trigger",
+  "homepage": "https://github.com/project-flogo/stream/tree/master/trigger/streamtester",
   "settings":[
     {
       "name":"port",
-      "type":"string"
+      "type":"int",
+      "required": true,
+      "description": "The port for the control api to listen on"
     }
   ],
   "output":[
     {
-      "name":"data",
-      "type":"object"
+      "name":"columnNames",
+      "type": "array",
+      "description": "The array of column names if getColumnNames was enabled"
+
     },
     {
-      "name":"error",
-      "type":"any"
+      "name":"data",
+      "type":"any",
+      "description": "The data that is being emitted from the CSV (either a row or the entire set)"
     }
   ],
   "handler": {
     "settings": [
       {
-        "name": "dataAsMap",
-        "type": "bool"
+        "name":"filePath",
+        "type": "string",
+        "required": true,
+        "description": "Path to a CSV file (local file path or url)"
       },
       {
-        "name": "repeatInterval",
-        "type": "string"
+        "name":"emitDelay",
+        "type": "int",
+        "description": "The delay between data emission in milliseconds, the default is 100ms (min is 10ms)"
       },
       {
-        "name" : "filePath",
-        "type" : "string"
+        "name":"dataAsMap",
+        "type": "bool",
+        "description": "Convert the data to a Map, with column names as keys"
       },
       {
-        "name" : "asBlock",
-        "type" : "boolean"
+        "name":"replayData",
+        "type": "bool",
+        "description": "Convert the data to a Map, with column names as keys"
       },
       {
-        "name" : "getColumnNames",
-        "type" : "boolean"
+        "name":"getColumnNames",
+        "type": "bool",
+        "description": "Get all the column names"
+      },
+      {
+        "name":"allDataAtOnce",
+        "type": "bool",
+        "description": "Indicates that the data be sent all at once, otherwise one row at a time"
       }
     ]
   }

@@ -1,6 +1,5 @@
 <!--
 title: streamtester
-
 -->
 # StreamTester Trigger
 This trigger gives you the ability to test your stream application using mock data provided in a csv file.
@@ -11,38 +10,53 @@ This trigger gives you the ability to test your stream application using mock da
 flogo install github.com/project-flogo/stream/trigger/streamtester
 ```
 
-
 ### Configuration
 
-#### Settings:
-| Setting  | Required | Description |
-|:---------|:---------|:------------|
-| port     | true     | Port number on which control api is called 
+### Settings:
+| Name      | Type   | Description
+|:---       | :---   | :---       
+| port      | int    | The port for the control api to listen on - **REQUIRED**
+
 
 #### Handler Settings:
-| Setting        | Required | Description |
-|:---------------|:---------|:------------|
-| filePath       | true     | Path to a CSV file
-| repeatInterval | true     | the repeat interval (1, 200 etc in millisecond), doesn't repeat if not specified
-| dataAsMap      | false    | Send as Map
-| getColumnNames | false    | Get all the columns as array.
-| asBlock        | false    | Should the file be send as a block or stream. (Block set to true will send the csv file all at once.)
+| Setting        | Type    | Description |
+|:---------------|:--------|:------------|
+| filePath       | string  | Path to a CSV file (local file path or url) - **REQUIRED**
+| emitDelay      | int     | The delay between data emission in milliseconds, the default is 100ms (min is 5ms)
+| replayData     | bool    | Continuously replays the data set (default is true) 
+| dataAsMap      | bool    | Convert the data to a Map, with column names as keys
+| getColumnNames | bool    | Get all the column names
+| allDataAtOnce  | bool    | Indicates that the data be sent all at once, otherwise one row at a time
+
+### Output:
+| Name        | Type   | Description
+|:---         | :---   | :---        
+| columnNames | array | The array of column names if getColumnNames was enabled
+| data        | params | he data that is being emitted from the CSV (either a row or the entire set)
 
 ### Trigger Control API
 
 The tester can be controlled using a REST API. 
 
+| Method | Resource     | Description |
+|:---    |:---          |:---         |
+| POST | /tester/start  | Starts all data emission 
+| POST | /tester/stop   | Stops all data emission
+| POST | /tester/pause  | Pauses all data emission 
+| POST | /tester/resume | Resumes all data emission 
+| POST | /tester/reload | Reloads the data from all csv files
 
-POST /tester/start : Starts all data emission 
+#### Fine Grained Control
+If a handler name has been specified, the name can be control the data mission
+for that specified handler.   
 
-POST /tester/stop : Stops all data emission 
-
-POST /tester/pause : Pauses all data emission 
-
-POST /tester/resume : Resumes all data emission 
-
-***Note:*** *If a handler name has been specified, the name can be use to control the data emmission for a particular handler.  ex . POST /tester/pause/myHandler*   
-
+| Method | Resource     | Description |
+|:---    |:---          |:---         |
+| POST | /tester/start/:handlerName  | Starts data emission for the specified handler 
+| POST | /tester/stop/:handlerName   | Stops data emission for the specified handler
+| POST | /tester/pause/:handlerName  | Pauses data emission for the specified handler
+| POST | /tester/resume/:handlerName | Resumes data emission for the specified handler
+| POST | /tester/reload/:handlerName | Reloads the data from the csv for the specified handler
 
 ## Examples
 
@@ -60,7 +74,7 @@ Configure the trigger to emit data from the csv file every 10 milliseconds.
           "settings": {
             "filePath": "out.csv",
             "columnNameAsKey": true,
-            "repeatInterval": "10",
+            "repeatInterval": 10,
             "block" : false
           },
           "action": {
