@@ -163,10 +163,6 @@ func readCsvLocal(path string) ([][]string, error) {
 
 
 func isURL(path string) bool {
-	_, err := url.ParseRequestURI(path)
-	if err != nil {
-		return false
-	} else {
-		return true
-	}
+	u, err := url.Parse(path)
+	return err == nil && u.Scheme != "" && u.Host != ""
 }
