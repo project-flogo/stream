@@ -1,16 +1,19 @@
 {
   "name": "stream",
   "type": "flogo:action",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "title": "Flogo Stream",
   "description": "Simple Stream Action",
   "homepage": "https://github.com/project-flogo/stream/tree/master",
   "async": true,
   "settings": [
     {
+      "name": "streamURI",
+      "type": "string"
+    },
+    {
       "name": "pipelineURI",
-      "type": "string",
-      "required": true
+      "type": "string"
     },
     {
       "name": "groupBy",

@@ -79,7 +79,7 @@ Configure the trigger to emit data from the csv file every 50 milliseconds.
           "action": {
             "ref": "github.com/project-flogo/stream",
             "settings": {
-              "pipelineURI": "res://stream:mystream"
+              "streamURI": "res://stream:mystream"
             }
           }
         }

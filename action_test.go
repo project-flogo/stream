@@ -16,7 +16,7 @@ const testConfig string = `{
   "id": "flogo-stream",
   "ref": "github.com/project-flogo/stream",
   "settings": {
-    "pipelineURI": "res://pipeline:test",
+    "streamURI": "res://stream:test",
     "outputChannel": "testChan"
   }
 }
@@ -50,7 +50,7 @@ func TestActionFactory_New(t *testing.T) {
 	err = af.Initialize(ctx)
 	assert.Nil(t, err)
 
-	resourceCfg := &resource.Config{ID: "pipeline:test"}
+	resourceCfg := &resource.Config{ID: "stream:test"}
 	resourceCfg.Data = []byte(resData)
 	err = ctx.AddResource(pipeline.ResType, resourceCfg)
 	assert.Nil(t, err)

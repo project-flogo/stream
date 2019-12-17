@@ -59,7 +59,7 @@ func (d *Definition) Cleanup() error {
 			if needsCleanup, ok := stage.act.(support.NeedsCleanup); ok {
 				err := needsCleanup.Cleanup()
 				if err != nil {
-					log.RootLogger().Warnf("Error cleaning up activity '%s' in pipeline '%s' : ", activity.GetRef(stage.act), d.name, err)
+					log.RootLogger().Warnf("Error cleaning up activity '%s' in stream pipeline '%s' : ", activity.GetRef(stage.act), d.name, err)
 				}
 			}
 		}

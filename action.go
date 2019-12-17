@@ -30,7 +30,8 @@ var logger log.Logger
 var idGenerator *support.Generator
 
 type Settings struct {
-	PipelineURI   string `md:"pipelineURI,required"`
+	StreamURI     string `md:"streamURI"`
+	PipelineURI   string `md:"pipelineURI"`
 	GroupBy       string `md:"groupBy"`
 	OutputChannel string `md:"outputChannel"`
 }
@@ -43,7 +44,7 @@ func (f *ActionFactory) Initialize(ctx action.InitContext) error {
 
 	f.resManager = ctx.ResourceManager()
 
-	logger = log.ChildLogger(log.RootLogger(), "pipeline")
+	logger = log.ChildLogger(log.RootLogger(), "stream")
 
 	if manager != nil {
 		return nil
@@ -69,6 +70,7 @@ func (f *ActionFactory) Initialize(ctx action.InitContext) error {
 
 	manager = pipeline.NewManager()
 	err := resource.RegisterLoader(pipeline.ResType, pipeline.NewResourceLoader(mapperFactory, pipeline.GetDataResolver()))
+	err = resource.RegisterLoader(pipeline.ResTypeOld, pipeline.NewResourceLoader(mapperFactory, pipeline.GetDataResolver()))
 	return err
 }
 
@@ -80,32 +82,36 @@ func (f *ActionFactory) New(config *action.Config) (action.Action, error) {
 		return nil, err
 	}
 
-	streamAction := &StreamAction{}
-
-	if settings.PipelineURI == "" {
-		return nil, fmt.Errorf("pipeline URI not specified")
+	if settings.PipelineURI != "" && settings.StreamURI == "" {
+		settings.StreamURI = settings.PipelineURI
 	}
 
-	if strings.HasPrefix(settings.PipelineURI, resource.UriScheme) {
+	if settings.StreamURI == "" {
+		return nil, fmt.Errorf("stream URI not specified")
+	}
 
-		res := f.resManager.GetResource(settings.PipelineURI)
+	streamAction := &StreamAction{}
+
+	if strings.HasPrefix(settings.StreamURI, resource.UriScheme) {
+
+		res := f.resManager.GetResource(settings.StreamURI)
 
 		if res != nil {
 			def, ok := res.Object().(*pipeline.Definition)
 			if !ok {
-				return nil, errors.New("unable to resolve pipeline: " + settings.PipelineURI)
+				return nil, errors.New("unable to resolve stream: " + settings.StreamURI)
 			}
 			streamAction.definition = def
 		} else {
-			return nil, errors.New("unable to resolve pipeline: " + settings.PipelineURI)
+			return nil, errors.New("unable to resolve stream: " + settings.StreamURI)
 		}
 	} else {
-		def, err := manager.GetPipeline(settings.PipelineURI)
+		def, err := manager.GetPipeline(settings.StreamURI)
 		if err != nil {
 			return nil, err
 		} else {
 			if def == nil {
-				return nil, errors.New("unable to resolve pipeline: " + settings.PipelineURI)
+				return nil, errors.New("unable to resolve stream: " + settings.StreamURI)
 			}
 		}
 		streamAction.definition = def

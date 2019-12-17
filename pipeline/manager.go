@@ -85,25 +85,25 @@ type BasicRemotePipelineProvider struct {
 }
 
 //todo this can be generalized an shared with flow
-func (*BasicRemotePipelineProvider) GetPipeline(pipelineURI string) (*DefinitionConfig, error) {
+func (*BasicRemotePipelineProvider) GetPipeline(streamURI string) (*DefinitionConfig, error) {
 
 	var pDefBytes []byte
 
-	if strings.HasPrefix(pipelineURI, uriSchemeFile) {
+	if strings.HasPrefix(streamURI, uriSchemeFile) {
 		// File URI
-		logger.Infof("Loading Local Pipeline: %s\n", pipelineURI)
-		pipelineFilePath, _ := support.URLStringToFilePath(pipelineURI)
+		logger.Infof("Loading Local Stream: %s\n", streamURI)
+		pipelineFilePath, _ := support.URLStringToFilePath(streamURI)
 
 		readBytes, err := ioutil.ReadFile(pipelineFilePath)
 		if err != nil {
-			readErr := fmt.Errorf("error reading pipeline with uri '%s', %s", pipelineURI, err.Error())
+			readErr := fmt.Errorf("error reading pipeline with uri '%s', %s", streamURI, err.Error())
 			logger.Errorf(readErr.Error())
 			return nil, readErr
 		}
 		if readBytes[0] == 0x1f && readBytes[2] == 0x8b {
 			pDefBytes, err = unzip(readBytes)
 			if err != nil {
-				decompressErr := fmt.Errorf("error uncompressing pipeline with uri '%s', %s", pipelineURI, err.Error())
+				decompressErr := fmt.Errorf("error uncompressing pipeline with uri '%s', %s", streamURI, err.Error())
 				logger.Errorf(decompressErr.Error())
 				return nil, decompressErr
 			}
@@ -112,13 +112,13 @@ func (*BasicRemotePipelineProvider) GetPipeline(pipelineURI string) (*Definition
 
 		}
 
-	} else if strings.HasPrefix(pipelineURI, uriSchemeHttp) {
+	} else if strings.HasPrefix(streamURI, uriSchemeHttp) {
 		// URI
-		req, err := http.NewRequest("GET", pipelineURI, nil)
+		req, err := http.NewRequest("GET", streamURI, nil)
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		if err != nil {
-			getErr := fmt.Errorf("error getting pipeline with uri '%s', %s", pipelineURI, err.Error())
+			getErr := fmt.Errorf("error getting pipeline with uri '%s', %s", streamURI, err.Error())
 			logger.Errorf(getErr.Error())
 			return nil, getErr
 		}
@@ -128,14 +128,14 @@ func (*BasicRemotePipelineProvider) GetPipeline(pipelineURI string) (*Definition
 
 		if resp.StatusCode >= 300 {
 			//not found
-			getErr := fmt.Errorf("error getting pipeline with uri '%s', status code %d", pipelineURI, resp.StatusCode)
+			getErr := fmt.Errorf("error getting pipeline with uri '%s', status code %d", streamURI, resp.StatusCode)
 			logger.Errorf(getErr.Error())
 			return nil, getErr
 		}
 
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			readErr := fmt.Errorf("error reading pipeline response body with uri '%s', %s", pipelineURI, err.Error())
+			readErr := fmt.Errorf("error reading pipeline response body with uri '%s', %s", streamURI, err.Error())
 			logger.Errorf(readErr.Error())
 			return nil, readErr
 		}
@@ -144,7 +144,7 @@ func (*BasicRemotePipelineProvider) GetPipeline(pipelineURI string) (*Definition
 		if strings.ToLower(val) == "true" {
 			decodedBytes, err := decodeAndUnzip(string(body))
 			if err != nil {
-				decodeErr := fmt.Errorf("error decoding compressed pipeline with uri '%s', %s", pipelineURI, err.Error())
+				decodeErr := fmt.Errorf("error decoding compressed pipeline with uri '%s', %s", streamURI, err.Error())
 				logger.Errorf(decodeErr.Error())
 				return nil, decodeErr
 			}
@@ -153,14 +153,14 @@ func (*BasicRemotePipelineProvider) GetPipeline(pipelineURI string) (*Definition
 			pDefBytes = body
 		}
 	} else {
-		return nil, fmt.Errorf("unsupport uri %s", pipelineURI)
+		return nil, fmt.Errorf("unsupport uri %s", streamURI)
 	}
 
 	var pDef *DefinitionConfig
 	err := json.Unmarshal(pDefBytes, &pDef)
 	if err != nil {
 		logger.Errorf(err.Error())
-		return nil, fmt.Errorf("error unmarshalling pipeline with uri '%s', %s", pipelineURI, err.Error())
+		return nil, fmt.Errorf("error unmarshalling pipeline with uri '%s', %s", streamURI, err.Error())
 	}
 
 	return pDef, nil

@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	ResType = "pipeline"
+	ResType = "stream"
+	ResTypeOld = "pipeline"
 )
 
 func NewResourceLoader(mapperFactory mapper.Factory, resolver resolve.CompositeResolver) resource.Loader {
@@ -31,7 +32,7 @@ func (rl *ResourceLoader) LoadResource(config *resource.Config) (*resource.Resou
 	var defConfig *DefinitionConfig
 	err := json.Unmarshal(pipelineCfgBytes, &defConfig)
 	if err != nil {
-		return nil, fmt.Errorf("error unmarshalling pipeline resource with id '%s', %s", config.ID, err.Error())
+		return nil, fmt.Errorf("error unmarshalling stream resource with id '%s', %s", config.ID, err.Error())
 	}
 
 	defConfig.id = config.ID
