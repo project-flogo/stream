@@ -38,13 +38,13 @@
       "id": "simple_agg",
       "ref": "#stream",
       "settings": {
-        "pipelineURI": "res://pipeline:simple_agg"
+        "streamURI": "res://stream:simple_agg"
       }
     }
   ],
   "resources": [
     {
-      "id": "pipeline:simple_agg",
+      "id": "stream:simple_agg",
       "data": {
         "metadata": {
           "input": [

@@ -301,7 +301,7 @@ func (eCtx *ExecutionContext) CreateTimer(interval time.Duration, callback suppo
 					if resume {
 						err := Resume(newCtx)
 						if err != nil {
-							logger.Errorf("Unable to resume pipeline: %v", err)
+							logger.Errorf("Unable to resume stream pipeline: %v", err)
 						}
 					}
 				} else {
@@ -325,7 +325,7 @@ func (eCtx *ExecutionContext) CreateTimer(interval time.Duration, callback suppo
 		go func() {
 			<-holder.timer.C
 			newCtx := holder.GetLastExecCtx()
-			//newCtx := &ExecutionContext{discriminator: discriminator, pipeline: inst}
+			//newCtx := &ExecutionContext{discriminator: discriminator, stream: inst}
 			//newCtx.stageId = stageId
 			//newCtx.status = ExecStatusActive
 
@@ -339,7 +339,7 @@ func (eCtx *ExecutionContext) CreateTimer(interval time.Duration, callback suppo
 			if resume {
 				err = Resume(newCtx)
 				if err != nil {
-					logger.Errorf("Unable to resume pipeline: %v", err)
+					logger.Errorf("Unable to resume stream pipeline: %v", err)
 				}
 			}
 		}()
