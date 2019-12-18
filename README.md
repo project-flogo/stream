@@ -64,7 +64,7 @@ See the sample below of an aggregation pipeline (for brevity, the triggers and m
 
 ## Try out the example
 
-Firstly you should install the install the [Flogo CLI](https://github.com/project-flogo/core).
+Firstly you should install the install the [Flogo CLI](https://github.com/project-flogo/cli).
  
 Next you should download our aggregation example [agg-flogo.json](https://github.com/project-flogo/stream/blob/master/examples/agg-flogo.json).
 
@@ -89,4 +89,4 @@ Flogo Stream also provides some activities to assist in stream processing.
 * [Filter](activity/filter/README.md) : This activity allows you to filter out data in a streaming pipeline.
 
 ## License 
-Flogo source code in [this](https://github.com/project-flogo/strem) repository is under a BSD-style license, refer to [LICENSE](https://github.com/project-flogo/strem/blob/master/LICENSE)
+Flogo source code in [this](https://github.com/project-flogo/stream) repository is under a BSD-style license, refer to [LICENSE](https://github.com/project-flogo/strem/blob/master/LICENSE)
