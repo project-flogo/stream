@@ -3,13 +3,16 @@ package telemetry
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
 
 	"github.com/gorilla/websocket"
 	"github.com/julienschmidt/httprouter"
+	"github.com/project-flogo/core/data/coerce"
 	"github.com/project-flogo/core/support/log"
+	"github.com/project-flogo/core/support/service"
 	"github.com/project-flogo/stream/pipeline/support"
 )
 
@@ -23,22 +26,7 @@ const (
 	MsgStageFinished    = "stage-finished"
 )
 
-func init() {
-	support.RegisterTelemetryService(&Service{logger:log.ChildLogger(log.RootLogger(), "stream-telemetry")})
-}
-
-//GetRunnerWorkers returns the number of workers to use
-func GetTelemetryPort() int {
-	port := DefaultTelemetryPort
-	portEnv := os.Getenv(EnvTelemetryPort)
-	if len(portEnv) > 0 {
-		i, err := strconv.Atoi(portEnv)
-		if err == nil {
-			port = i
-		}
-	}
-	return port
-}
+var logger = log.ChildLogger(log.RootLogger(), "stream-telemetry")
 
 type PipelineTelemetry struct {
 	PipelineId string                 `json:"pipelineId"`
@@ -54,50 +42,85 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
+func init() {
+	_ = service.RegisterFactory(&ServiceFactory{})
+}
+
+type ServiceFactory struct {
+}
+
+func (s *ServiceFactory) NewService(config *service.Config) (service.Service, error) {
+	ts := &Service{}
+	err := ts.init(config.Settings)
+	if err != nil {
+		return nil, err
+	}
+
+	return ts, nil
+}
+
 type Service struct {
-	logger    log.Logger
 	server    *http.Server
 	clients   map[*websocket.Conn]bool
 	broadcast chan *PipelineTelemetry
-	stopchan  chan struct{}
+	stopChan  chan struct{}
 }
 
 func (s *Service) Name() string {
 	return "stream-telemetry"
 }
 
+//DEPRECATED
 func (s *Service) Enabled() bool {
 	return true
 }
 
-func (s *Service) startTelemetryServer() *http.Server {
+func getTelemetryPort() int {
+	port := DefaultTelemetryPort
+	portEnv := os.Getenv(EnvTelemetryPort)
+	if len(portEnv) > 0 {
+		i, err := strconv.Atoi(portEnv)
+		if err == nil {
+			port = i
+		}
+	}
+	return port
+}
 
-	port := GetTelemetryPort()
+func (s *Service) init(settings map[string]interface{}) error {
+
+	port := getTelemetryPort()
+	var err error
+	sPort, set := settings["port"]
+	if set {
+		port, err = coerce.ToInt(sPort)
+		if err != nil {
+			return err
+		}
+	}
 
 	router := httprouter.New()
 	addr := ":" + strconv.Itoa(port)
 
 	router.Handle("GET", "/telemetry", s.wsHandler)
 
-	srv := &http.Server{Addr: addr, Handler: router}
+	s.server = &http.Server{Addr: addr, Handler: router}
 
-	go func() {
-		// returns ErrServerClosed on graceful close
-		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-			s.logger.Errorf("ListenAndServe(): %s", err)
-		}
-	}()
+	support.RegisterTelemetryService(s)
 
-	// returning reference so caller can call Shutdown()
-	return srv
+	return nil
 }
 
 func (s *Service) Start() error {
 
 	s.clients = make(map[*websocket.Conn]bool)
 	s.broadcast = make(chan *PipelineTelemetry)
-	s.stopchan = make(chan struct{})
-	s.server = s.startTelemetryServer()
+	s.stopChan = make(chan struct{})
+
+	err := listenAndServe(s.server)
+	if err != nil {
+		return err
+	}
 	go s.notify()
 
 	return nil
@@ -107,43 +130,72 @@ func (s *Service) Stop() error {
 
 	if s.server != nil {
 
-		close(s.stopchan) // tell it to stop
+		close(s.stopChan) // tell it to stop
 
 		err := s.server.Shutdown(context.TODO())
 		if err != nil {
 			return err
 		}
-
 		s.server = nil
 	}
 
 	return nil
 }
 
+func listenAndServe(srv *http.Server) error {
+	addr := srv.Addr
+	if addr == "" {
+		addr = ":http"
+	}
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
+
+
+	fullAddr := srv.Addr
+	if fullAddr[0] == ':' {
+		fullAddr = "0.0.0.0" + srv.Addr
+	}
+
+	logger.Infof("Listening on http://%s", fullAddr)
+
+
+	go func() {
+		defer ln.Close()
+		// returns ErrServerClosed on graceful close
+		if err := srv.Serve(ln); err != http.ErrServerClosed {
+			logger.Errorf("ListenAndServe(): %s", err)
+		}
+	}()
+
+	return nil
+}
+
 func (s *Service) PipelineStarted(pipelineId, instanceId string, data map[string]interface{}) {
-	t := &PipelineTelemetry{Type: MsgPipelineStarted, PipelineId: pipelineId, InstanceId:instanceId, Data: data}
+	t := &PipelineTelemetry{Type: MsgPipelineStarted, PipelineId: pipelineId, InstanceId: instanceId, Data: data}
 	s.broadcast <- t
 }
 
 func (s *Service) StageStarted(pipelineId, instanceId, stageId string, data map[string]interface{}) {
-	t := &PipelineTelemetry{Type: MsgStageStarted, PipelineId: pipelineId, InstanceId:instanceId, StageId:stageId, Data: data}
+	t := &PipelineTelemetry{Type: MsgStageStarted, PipelineId: pipelineId, InstanceId: instanceId, StageId: stageId, Data: data}
 	s.broadcast <- t
 }
 
 func (s *Service) StageFinished(pipelineId, instanceId, stageId string, data map[string]interface{}) {
-	t := &PipelineTelemetry{Type: MsgStageFinished, PipelineId: pipelineId, InstanceId:instanceId, StageId:stageId, Data: data}
+	t := &PipelineTelemetry{Type: MsgStageFinished, PipelineId: pipelineId, InstanceId: instanceId, StageId: stageId, Data: data}
 	s.broadcast <- t
 }
 
 func (s *Service) PipelineFinished(pipelineId, instanceId string, data map[string]interface{}) {
-	t := &PipelineTelemetry{Type: MsgPipelineFinished, PipelineId: pipelineId, InstanceId:instanceId, Data: data}
+	t := &PipelineTelemetry{Type: MsgPipelineFinished, PipelineId: pipelineId, InstanceId: instanceId, Data: data}
 	s.broadcast <- t
 }
 
 func (s *Service) wsHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		s.logger.Error(err)
+		logger.Error(err)
 		return
 	}
 
@@ -159,7 +211,7 @@ func (s *Service) notify() {
 
 			msg, err := json.Marshal(val)
 			if err != nil {
-				s.logger.Error(err)
+				logger.Error(err)
 				continue
 			}
 
@@ -167,12 +219,12 @@ func (s *Service) notify() {
 			for client := range s.clients {
 				err := client.WriteMessage(websocket.TextMessage, msg)
 				if err != nil {
-					s.logger.Errorf("Websocket error: %s", err)
+					logger.Errorf("Websocket error: %s", err)
 					_ = client.Close()
 					delete(s.clients, client)
 				}
 			}
-		case <-s.stopchan:
+		case <-s.stopChan:
 			// stop
 			return
 		}
