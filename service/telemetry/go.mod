@@ -2,9 +2,9 @@ module github.com/project-flogo/stream/service/telemetry
 
 require (
 	github.com/gorilla/websocket v1.4.0
-	github.com/julienschmidt/httprouter v1.2.0
-	github.com/project-flogo/core v0.9.4
-	github.com/project-flogo/stream v0.2.1-rc.1
+	github.com/julienschmidt/httprouter v1.3.0
+	github.com/project-flogo/core v0.10.1
+	github.com/project-flogo/stream v0.3.0
 )
 
-go 1.13
+go 1.12
