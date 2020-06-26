@@ -3,7 +3,10 @@ package filter
 type NonZeroFilter struct {
 }
 
-func (*NonZeroFilter) FilterOut(val interface{}) bool {
+type ConditionalFilter struct {
+}
+
+func (*NonZeroFilter) FilterOut(val interface{}, condition bool) bool {
 	return !IsNonZero(val)
 }
 
@@ -32,4 +35,8 @@ func IsNonZero(val interface{}) bool {
 
 	//todo handle unsupported type
 	return true
+}
+
+func (*ConditionalFilter) FilterOut(val interface{}, condition bool) bool {
+	return condition
 }
