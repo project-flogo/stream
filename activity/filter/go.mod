@@ -1,4 +1,4 @@
-module github.com/vpawar-ai/stream/activity/filter
+module github.com/project-flogo/stream/activity/filter
 
 require (
 	github.com/project-flogo/core v0.10.1
