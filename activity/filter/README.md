@@ -21,7 +21,7 @@ flogo install github.com/project-flogo/stream/activity/filter
       "name": "type",
       "type": "string",
       "required": true,
-      "allowed" : ["non-zero"]
+      "allowed" : ["non-zero","conditional"]
     },
     {
       "name": "proceedOnlyOnEmit",
@@ -32,6 +32,10 @@ flogo install github.com/project-flogo/stream/activity/filter
     {
       "name": "value",
       "type": "any"
+    },
+    {
+      "name": "condition",
+      "type": "boolean"
     }
   ],
   "output": [
@@ -51,7 +55,7 @@ flogo install github.com/project-flogo/stream/activity/filter
 #### Settings:
 | Setting     | Required | Description |
 |:------------|:---------|:------------|
-| type              | true   | The type of filter to apply (ex. non-zero)
+| type              | true   | The type of filter to apply (ex. non-zero, conditional)
 | proceedOnlyOnEmit | false  | Indicates that the next activity should proceed, true by default
 _note_ : if using this activity in a flow, proceedOnlyOnEmit should be set to false
 
@@ -59,6 +63,7 @@ _note_ : if using this activity in a flow, proceedOnlyOnEmit should be set to fa
 | Name     | Description |
 |:------------|:---------|
 | value    | The input value
+| condition| The filter condition when filter type is 'conditional'
 
 #### Output:
 | Name     | Description |
