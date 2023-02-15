@@ -8,19 +8,21 @@ import (
 )
 
 const (
-	ivValue    = "value"
-	ovFiltered = "filtered"
-	ovValue    = "value"
+	ivValue     = "value"
+	ivCondition = "condition"
+	ovFiltered  = "filtered"
+	ovValue     = "value"
 )
 
 //we can generate json from this! - we could also create a "validate-able" object from this
 type Settings struct {
-	Type              string `md:"type,allowed(non-zero)"`
+	Type              string `md:"type,allowed(non-zero,conditional)"`
 	ProceedOnlyOnEmit bool
 }
 
 type Input struct {
-	Value interface{} `md:"value"`
+	Value     interface{} `md:"value"`
+	Condition bool        `md:"condition"`
 }
 
 type Output struct {
@@ -45,6 +47,8 @@ func New(ctx activity.InitContext) (activity.Activity, error) {
 
 	if s.Type == "non-zero" {
 		act.filter = &NonZeroFilter{}
+	} else if s.Type == "conditional" {
+		act.filter = &ConditionalFilter{}
 	} else {
 		return nil, fmt.Errorf("unsupported filter: '%s'", s.Type)
 	}
@@ -72,8 +76,9 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 	proceedOnlyOnEmit := a.proceedOnlyOnEmit
 
 	in := ctx.GetInput(ivValue)
+	condition := ctx.GetInput(ivCondition).(bool)
 
-	filteredOut := filter.FilterOut(in)
+	filteredOut := filter.FilterOut(in, condition)
 
 	done = !(proceedOnlyOnEmit && filteredOut)
 
@@ -90,5 +95,5 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 }
 
 type Filter interface {
-	FilterOut(val interface{}) bool
+	FilterOut(val interface{}, condition bool) bool
 }

@@ -10,7 +10,7 @@
       "name": "type",
       "type": "string",
       "required": true,
-      "allowed" : ["non-zero"]
+      "allowed" : ["non-zero", "conditional"]
     },
     {
       "name": "proceedOnlyOnEmit",
@@ -21,6 +21,10 @@
     {
       "name": "value",
       "type": "any"
+    },
+    {
+      "name": "condition",
+      "type": "boolean"
     }
   ],
   "output": [
