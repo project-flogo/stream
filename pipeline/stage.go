@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"fmt"
+
 	"github.com/project-flogo/core/support"
 
 	"github.com/project-flogo/core/activity"
@@ -49,14 +50,16 @@ func (ctx *initContextImpl) Logger() log.Logger {
 }
 
 func (ctx *initContextImpl) Name() string {
-	if name, ok := ctx.settings["Name"]; !ok {
+	name, ok := ctx.settings["Name"]
+	if !ok {
 		return ""
 	}
 	return name.(string)
 }
 
 func (ctx *initContextImpl) HostName() string {
-	if hostName, ok := ctx.settings["HostName"]; !ok {
+	hostName, ok := ctx.settings["HostName"]
+	if !ok {
 		return ""
 	}
 	return hostName.(string)
