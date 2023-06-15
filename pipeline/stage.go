@@ -48,6 +48,16 @@ func (ctx *initContextImpl) Logger() log.Logger {
 	return log.RootLogger()
 }
 
+func (ctx *initContextImpl) Name() string {
+	// suppose you add Name of the activity / task, in the config Settings 
+	return ctx.settings["Name"].(string)
+}
+
+func (ctx *initContextImpl) HostName() string {
+	// suppose you add HostName of the activity / task, in the config Settings
+	return ctx.settings["HostName"].(string)
+}
+
 func NewStage(config *StageConfig, mf mapper.Factory, resolver resolve.CompositeResolver) (*Stage, error) {
 
 	if config.Ref == "" && config.Type != "" {
