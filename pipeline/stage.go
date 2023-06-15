@@ -48,6 +48,20 @@ func (ctx *initContextImpl) Logger() log.Logger {
 	return log.RootLogger()
 }
 
+func (ctx *initContextImpl) Name() string {
+	if name, ok := ctx.settings["Name"]; !ok {
+		return ""
+	}
+	return name.(string)
+}
+
+func (ctx *initContextImpl) HostName() string {
+	if hostName, ok := ctx.settings["HostName"]; !ok {
+		return ""
+	}
+	return hostName.(string)
+}
+
 func NewStage(config *StageConfig, mf mapper.Factory, resolver resolve.CompositeResolver) (*Stage, error) {
 
 	if config.Ref == "" && config.Type != "" {
