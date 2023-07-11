@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/project-flogo/core/activity"
+	"github.com/project-flogo/core/data/coerce"
 	"github.com/project-flogo/core/data/metadata"
 	"github.com/project-flogo/stream/activity/aggregate/window"
 	"github.com/project-flogo/stream/pipeline/support"
@@ -63,7 +64,8 @@ func New(ctx activity.InitContext) (activity.Activity, error) {
 		return nil, err
 	}
 
-	act := &Activity{settings: s, additionalSettings: additionalSettings}
+	sharedData := make(map[string]interface{})
+	act := &Activity{settings: s, additionalSettings: additionalSettings, sharedData: sharedData}
 
 	return act, nil
 }
@@ -73,6 +75,7 @@ type Activity struct {
 	settings           *Settings
 	additionalSettings map[string]string
 	mutex              sync.Mutex
+	sharedData         map[string]interface{}
 }
 
 // Metadata returns the activity's metadata
@@ -83,7 +86,7 @@ func (a *Activity) Metadata() *activity.Metadata {
 // Eval implements api.Activity.Eval - Aggregates the Message
 func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 
-	sharedData := ctx.GetSharedTempData()
+	sharedData := a.sharedData
 	wv, defined := sharedData[sdWindow]
 
 	timerSupport, timerSupported := support.GetTimerSupport(ctx)
@@ -179,7 +182,7 @@ func (a *Activity) PostEval(ctx activity.Context, userData interface{}) (done bo
 
 func (a *Activity) moveWindow(ctx activity.Context) bool {
 
-	sharedData := ctx.GetSharedTempData()
+	sharedData := a.sharedData
 
 	wv, _ := sharedData[sdWindow]
 
@@ -219,4 +222,36 @@ func toParams(values string) (map[string]string, error) {
 	}
 
 	return params, nil
+}
+
+func (o *Output) ToMap() map[string]interface{} {
+	return map[string]interface{}{
+		"report": o.Report,
+		"result": o.Result,
+	}
+}
+
+func (r *Input) ToMap() map[string]interface{} {
+	return map[string]interface{}{
+		"value": r.Value,
+	}
+}
+
+func (i *Input) FromMap(values map[string]interface{}) error {
+
+	i.Value = values["value"]
+
+	return nil
+}
+
+func (o *Output) FromMap(values map[string]interface{}) error {
+
+	var err error
+	o.Report, err = coerce.ToBool(values["report"])
+	if err != nil {
+		return err
+	}
+	o.Result = values["result"]
+
+	return nil
 }
